@@ -16,6 +16,8 @@ HMB.CONFIG = {
   maxBeers: 10,
   getBeerCooldown: 1.0,
   serveReach: 1.2,           // distance from a table's edge where Serve appears
+  tableCooldownEnabled: false, // after someone serves a table, nobody can serve it again for a while
+  tableCooldownSeconds: 3,
 
   // Drinking
   drinkCooldown: 10,
@@ -91,10 +93,15 @@ HMB.CONFIG = {
 // Factory values, used by "Reset to defaults"
 HMB.DEFAULTS = JSON.parse(JSON.stringify(HMB.CONFIG));
 
-// Numbers you can change on the start screen: [config key, label, min, max, step]
+// Values you can change on the start screen: [config key, label, min, max, step] for numbers,
+// [config key, label] for on/off switches (when the default is true/false).
 HMB.SETTINGS = [
   { group: 'Round', items: [
     ['matchSeconds', 'Round length (s)', 30, 600, 10],
+  ] },
+  { group: 'Tables', items: [
+    ['tableCooldownEnabled', 'Table cooldown after serving'],
+    ['tableCooldownSeconds', 'Table cooldown (s)', 0.5, 30, 0.5],
   ] },
   { group: 'Getting beers', items: [
     ['maxBeers', 'Max beers on the tray', 1, 30, 1],

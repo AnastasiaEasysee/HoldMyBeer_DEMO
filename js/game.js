@@ -174,6 +174,7 @@
     G.fx = [];
     G.clearTarget();
     G.actionHeld = false;
+    HMB.MAP.tables.forEach((t) => { t.cooldownT = 0; });
     G.remaining = C.matchSeconds;
     G.drunkAmt = 0;
     G.shake = 0;
@@ -228,9 +229,10 @@
 
   G.tryServe = function (c, table) {
     const t = table || G.servableTable(c);
-    if (!t || c.beers <= 0 || c.stunT > 0 || c.fallT > 0) return false;
+    if (!t || c.beers <= 0 || c.stunT > 0 || c.fallT > 0 || t.cooldownT > 0) return false;
     const pts = c.beers * t.points;
     c.score += pts;
+    if (C.tableCooldownEnabled) t.cooldownT = C.tableCooldownSeconds;
     c.stats.served += c.beers;
     c.stats.biggest = Math.max(c.stats.biggest, c.beers);
     serveFx(c, t, c.beers, pts);
@@ -329,6 +331,7 @@
       return { kind: 'get', label: 'Get Beer', sub: `hold · ${h.beers}/${C.maxBeers}`, enabled: true, cd: h.getCd / Math.max(0.01, C.getBeerCooldown) };
     }
     const t = G.servableTable(h);
+    if (t && h.beers > 0 && t.cooldownT > 0) return { kind: 'none', label: 'Serve', sub: `table busy ${Math.ceil(t.cooldownT)}s`, enabled: false, cd: t.cooldownT / Math.max(0.01, C.tableCooldownSeconds) };
     if (t && h.beers > 0) return { kind: 'serve', label: 'Serve', sub: `+${h.beers * t.points} pts`, enabled: true };
     if (h.beers > 0) {
       if (h.barDistance() < C.drinkMinBarDistance) return { kind: 'none', label: 'Drink', sub: 'too close to bar', enabled: false };
@@ -819,6 +822,7 @@
     G.time += dt;
 
     step(dt);
+    if (G.state !== 'results') HMB.MAP.tables.forEach((t) => { if (t.cooldownT > 0) t.cooldownT = Math.max(0, t.cooldownT - dt); });
     updateFx(dt);
     G.chars.forEach((c) => c.animate(dt, G.time));
     updateTargeting();

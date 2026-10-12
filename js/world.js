@@ -651,6 +651,12 @@
 
         tables.forEach((tb, i) => {
           tb.badge.position.y = 2.4 + Math.sin(t * 2 + i) * 0.08;
+          // Cooling down after a serve: dim badge, grey ring that shrinks back as it gets ready
+          const cooling = tb.cooldownT > 0;
+          tb.badge.material.opacity = cooling ? 0.35 : 1;
+          tb.ring.material.color.setHex(cooling ? 0x9a8f80 : 0xf4a72c);
+          const k = cooling ? 1 - tb.cooldownT / Math.max(0.01, C.tableCooldownSeconds) : 1;
+          tb.ring.scale.setScalar(cooling ? 0.55 + 0.45 * k : 1);
         });
         patronFigs.forEach((f) => {
           f.lean.rotation.z = Math.sin(t * 0.9 + f.phase) * 0.05;
@@ -664,7 +670,8 @@
           barZone.material.opacity = atBar ? 0.75 + Math.sin(t * 6) * 0.2 : 0.4;
           tables.forEach((tb) => {
             const near = human.beers > 0 && HMB.G.servableTable(human) === tb;
-            tb.ring.material.opacity = near ? 0.65 + Math.sin(t * 8) * 0.25 : (human.beers > 0 ? 0.22 : 0.1);
+            if (tb.cooldownT > 0) tb.ring.material.opacity = 0.55;
+            else tb.ring.material.opacity = near ? 0.65 + Math.sin(t * 8) * 0.25 : (human.beers > 0 ? 0.22 : 0.1);
           });
         }
       },

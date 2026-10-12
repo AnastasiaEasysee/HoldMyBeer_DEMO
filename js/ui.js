@@ -209,6 +209,27 @@
         h.textContent = grp.group;
         sec.appendChild(h);
         grp.items.forEach(([key, label, min, max, step]) => {
+          // On/off switch
+          if (typeof HMB.DEFAULTS[key] === 'boolean') {
+            if (typeof saved[key] === 'boolean') C[key] = saved[key];
+            const row = document.createElement('div');
+            row.className = 'tweak-row switch-row';
+            const lab = document.createElement('label');
+            lab.htmlFor = 'tw-' + key;
+            lab.textContent = label;
+            const inp = document.createElement('input');
+            inp.type = 'checkbox';
+            inp.id = 'tw-' + key;
+            inp.setAttribute('role', 'switch');
+            inp.checked = !!C[key];
+            const mark = () => row.classList.toggle('changed', C[key] !== HMB.DEFAULTS[key]);
+            inp.addEventListener('change', () => { C[key] = inp.checked; mark(); this.saveTweaks(); });
+            mark();
+            rows.push({ key, inp, mark, toggle: true });
+            row.append(lab, inp);
+            sec.appendChild(row);
+            return;
+          }
           if (typeof saved[key] === 'number' && isFinite(saved[key])) C[key] = clampN(saved[key], min, max);
           const row = document.createElement('div');
           row.className = 'tweak-row';
@@ -243,7 +264,8 @@
       $('tweak-reset').addEventListener('click', () => {
         rows.forEach((r) => {
           C[r.key] = HMB.DEFAULTS[r.key];
-          r.inp.value = fmt(C[r.key], r.step);
+          if (r.toggle) r.inp.checked = !!C[r.key];
+          else r.inp.value = fmt(C[r.key], r.step);
           r.mark();
         });
         this.saveTweaks();

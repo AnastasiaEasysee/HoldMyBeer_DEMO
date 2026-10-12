@@ -63,7 +63,7 @@ screen (or tilting the phone away from you) walks towards the bar.
 | Spec section | Implemented |
 |---|---|
 | Map | Fixed 26 × 36 m bar: counter along the top wall, 10 tables worth 1–5 points per beer (further = more), floating point badges |
-| Points | Serve all the beers on your tray at a table: beers × table points. Most points when the timer ends wins |
+| Points | Serve all the beers on your tray at a table: beers × table points. Most points when the timer ends wins. Optional **table cooldown** (switch in the tweak panel, off by default): after anyone serves a table, nobody can serve it for 3 s; its badge dims and its ring turns grey |
 | User controls | Gyro lean with joystick fallback; lean further to walk faster; full trays walk slower |
 | Obstacles | Stools and customers at fixed spots, customers walking set routes, other players. Bumping into anything bounces you off hard |
 | Hazards | Sticky spills (slow you to 40%) and open cellar hatches (fall in, lose your whole tray, climb out after 1.4 s). If a player falls in within 2.5 s of being bumped by another player, the bumper scores 2 points per beer lost |

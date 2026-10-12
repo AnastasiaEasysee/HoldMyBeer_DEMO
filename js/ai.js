@@ -230,6 +230,7 @@
         v *= 1 + t.points * p.farBias;
         v *= rand(1 - p.random, 1 + p.random);
         if (others.has(t)) v *= 0.85;
+        if (t.cooldownT > 0) v /= 1 + t.cooldownT * 0.5;   // still cooling down after a serve
         if (v > bv) { bv = v; best = t; }
       });
       this.table = best;
@@ -300,6 +301,11 @@
         case 'toTable': {
           if (c.beers === 0) { this.state = 'toBar'; this.goal = null; this.table = null; break; }
           if (g.servableTable(c) === this.table) {
+            if (this.table.cooldownT > 0) {
+              // Someone just served it: wait if it's nearly ready, otherwise pick another table
+              if (this.table.cooldownT > 2.5) { this.chooseTable(); break; }
+              return this.hold();
+            }
             this.serveDelay += dt;
             if (this.serveDelay > 0.25) {
               g.tryServe(c, this.table);
