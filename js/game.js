@@ -173,6 +173,7 @@
     G.fx.forEach((f) => f.dispose && f.dispose());
     G.fx = [];
     G.clearTarget();
+    G.actionHeld = false;
     G.remaining = C.matchSeconds;
     G.drunkAmt = 0;
     G.shake = 0;
@@ -318,7 +319,7 @@
     if (h.stunT > 0) return { kind: 'none', label: 'Dazed', sub: '', enabled: false };
     if (h.inBarZone()) {
       if (h.beers >= C.maxBeers) return { kind: 'none', label: 'Tray full', sub: `${h.beers}/${C.maxBeers}`, enabled: false };
-      return { kind: 'get', label: 'Get Beer', sub: `${h.beers}/${C.maxBeers}`, enabled: h.getCd <= 0, cd: h.getCd / C.getBeerCooldown };
+      return { kind: 'get', label: 'Get Beer', sub: `hold · ${h.beers}/${C.maxBeers}`, enabled: true, cd: h.getCd / Math.max(0.01, C.getBeerCooldown) };
     }
     const t = G.servableTable(h);
     if (t && h.beers > 0) return { kind: 'serve', label: 'Serve', sub: `+${h.beers * t.points} pts`, enabled: true };
@@ -334,7 +335,7 @@
     if (G.state !== 'playing') return;
     const a = G.currentAction();
     let ok = false;
-    if (a.kind === 'get') ok = G.tryGetBeer(G.human);
+    if (a.kind === 'get') ok = G.tryGetBeer(G.human) || G.human.getCd > 0;   // still cooling down: the hold will pour it
     else if (a.kind === 'serve') ok = G.tryServe(G.human);
     else if (a.kind === 'drink') ok = G.tryDrink(G.human);
     if (!ok) A.play('deny');
@@ -770,6 +771,11 @@
     }
 
     G.remaining -= dt;
+
+    // Holding Get Beer keeps pouring: one beer each time the cooldown runs out
+    if (G.actionHeld && h.getCd <= 0 && h.beers < C.maxBeers && G.currentAction().kind === 'get') {
+      G.tryGetBeer(h);
+    }
     h.update(dt, h.stunT > 0 ? STILL : humanLean(), t);
     G.bots.forEach((b) => b.c.update(dt, b.update(dt), t));
     collide();

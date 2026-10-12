@@ -115,14 +115,17 @@
         if (document.visibilityState === 'visible' && this.wantWake) this.keepAwake();
       });
 
-      // Action button: fires on touch-down for responsiveness
-      this.el.action.addEventListener('pointerdown', (e) => {
+      // Action button: fires on touch-down. Holding it at the bar keeps pouring beers.
+      const ab = this.el.action;
+      ab.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        this.el.action.classList.add('pressed');
+        try { ab.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+        ab.classList.add('pressed');
+        G.actionHeld = true;
         G.doAction();
       });
-      ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
-        this.el.action.addEventListener(ev, () => this.el.action.classList.remove('pressed')));
+      const release = () => { ab.classList.remove('pressed'); G.actionHeld = false; };
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => ab.addEventListener(ev, release));
 
       // Throw button: one tap throws at the highlighted rival (fires on touch-down)
       const tb = this.el.throwBtn;
@@ -134,13 +137,15 @@
       ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
         tb.addEventListener(ev, () => tb.classList.remove('pressed')));
 
-      // Keyboard: Space = action, F = throw
+      // Keyboard: Space = action (hold at the bar to keep pouring), F = throw
       addEventListener('keydown', (e) => {
         if (e.repeat || (e.target && e.target.tagName === 'INPUT')) return;
         if (G.state !== 'playing') return;
-        if (e.code === 'Space') G.doAction();
+        if (e.code === 'Space') { G.actionHeld = true; G.doAction(); }
         if (e.code === 'KeyF') G.throwNow();
       });
+      addEventListener('keyup', (e) => { if (e.code === 'Space') G.actionHeld = false; });
+      addEventListener('blur', () => { G.actionHeld = false; });
 
       // Double-tap the level to recalibrate tilt
       let lastTap = 0;

@@ -67,7 +67,7 @@ screen (or tilting the phone away from you) walks towards the bar.
 | User controls | Gyro lean with joystick fallback; lean further to walk faster; full trays walk slower |
 | Obstacles | Stools and customers at fixed spots, customers walking set routes, other players. Bumping into anything bounces you off hard |
 | Hazards | Sticky spills (slow you to 40%) and open cellar hatches (fall in, lose your whole tray, climb out after 1.4 s) |
-| Getting beers | **Get Beer** near the bar, 1 s cooldown, max 10. More beers = more tray sway and touchier balance |
+| Getting beers | Hold **Get Beer** near the bar: one beer per second (the cooldown) while held, max 10. More beers = more tray sway and touchier balance |
 | Drinking | **Drink** away from the bar, 10 s cooldown. 5 s double vision + touchier balance; 7 s speed boost; 7 s shield (bubble); +1 empty glass |
 | Throwing | Your facing direction aims: the fan shows reach (5 m) and angle; the rival inside it is highlighted. Tap **Throw** to throw. Hit = thrower scores 2 points per beer the target was carrying, then the target is stunned 1 s, drops 2 beers and gets 5 s throw immunity |
 | Views (phone) | Top-down camera following you, name tags, tutorial → "I understand" → countdown, HUD (beers top-left, score top-middle, filling timer top-right), results with rank and score |
