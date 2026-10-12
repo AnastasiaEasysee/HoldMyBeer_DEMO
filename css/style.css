@@ -85,7 +85,7 @@ button { font: inherit; color: inherit; }
 /* ---------- HUD ---------- */
 #hud { position: absolute; inset: 0; pointer-events: none; }
 #hud > * { pointer-events: auto; }
-#hud #toasts, #hud #effects, #hud #hit-flash, #hud #aim-hint { pointer-events: none; }
+#hud #toasts, #hud #effects, #hud #hit-flash { pointer-events: none; }
 
 .hud-top {
   position: absolute;
@@ -337,7 +337,6 @@ button { font: inherit; color: inherit; }
   width: 74px;
   height: 74px;
   background: radial-gradient(circle at 35% 30%, #ffffff, #cfe8ef 55%, #8fb9c6);
-  transform: translateY(calc(var(--lift, 0px) * -1));
 }
 .coaster.small .label { font-size: 16px; }
 .coaster.small .sub { font-size: 9px; }
@@ -357,18 +356,6 @@ button { font: inherit; color: inherit; }
   font-size: 13px;
   font-weight: 900;
   line-height: 22px;
-}
-
-#aim-hint {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: calc(244px + env(safe-area-inset-bottom, 0px));
-  text-align: center;
-  font-weight: 900;
-  font-size: 13px;
-  color: var(--foam);
-  text-shadow: 0 1px 3px #000;
 }
 
 #hit-flash {

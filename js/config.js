@@ -30,11 +30,11 @@ HMB.CONFIG = {
   // Throwing: face the rival you want to hit
   throwRange: 5,
   throwAimConeDeg: 40,       // how far off your facing direction a target may be
-  throwSwipePx: 36,          // swipe distance that releases the throw
   stunSeconds: 1,
   beersLostOnHit: 2,
   hitShieldSeconds: 5,
   barSafeDistance: 3.5,      // nobody can hit you this close to the bar counter
+  hitPointsPerBeer: 2,       // a hit scores this many points per beer the target was carrying
 
   // Movement
   playerRadius: 0.38,
@@ -111,6 +111,7 @@ HMB.SETTINGS = [
     ['throwRange', 'Throw range (m)', 1, 15, 0.5],
     ['throwAimConeDeg', 'Aim fan width (° each side)', 10, 90, 1],
     ['stunSeconds', 'Stun when hit (s)', 0, 5, 0.1],
+    ['hitPointsPerBeer', 'Points per beer the target carried', 0, 10, 0.5],
     ['beersLostOnHit', 'Beers dropped when hit', 0, 10, 1],
     ['hitShieldSeconds', 'Immunity after being hit (s)', 0, 20, 0.5],
     ['barSafeDistance', 'Safe zone in front of the bar (m)', 0, 10, 0.5],

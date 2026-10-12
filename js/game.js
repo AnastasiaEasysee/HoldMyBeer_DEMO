@@ -15,7 +15,7 @@
     bots: [],
     human: null,
     fx: [],
-    aim: null,
+    target: null,
     shake: 0,
     drunkAmt: 0,
     countdownT: 0,
@@ -172,7 +172,7 @@
     G.world.resetWalkers();
     G.fx.forEach((f) => f.dispose && f.dispose());
     G.fx = [];
-    G.aim = null;
+    G.clearTarget();
     G.remaining = C.matchSeconds;
     G.drunkAmt = 0;
     G.shake = 0;
@@ -183,7 +183,7 @@
 
   function endMatch() {
     G.state = 'results';
-    G.cancelAim();
+    G.clearTarget();
     A.play('whistle');
     UI.showHUD(false);
     UI.showResults(G);
@@ -280,6 +280,10 @@
       shatterFx(mesh.position.x, mesh.position.y, mesh.position.z, false);
       return;
     }
+    // The thrower scores for every beer the target was carrying
+    const pts = Math.round(target.beers * C.hitPointsPerBeer);
+    from.score += pts;
+    if (live && pts > 0) floatText(`+${pts}`, target.x, target.z, from.isHuman ? '#6fcf7b' : '#f4a72c');
     target.stunT = C.stunSeconds;
     target.vx *= 0.2;
     target.vz *= 0.2;
@@ -294,10 +298,10 @@
     if (target.isHuman) {
       UI.hitFlash();
       G.shake = 0.45;
-      UI.toast(`${from.name} hit you! −${lost} beer${s}`, 'bad');
+      UI.toast(`${from.name} hit you! −${lost} beer${s}` + (pts ? `, +${pts} for them` : ''), 'bad');
       vibrate(120);
     } else if (from.isHuman) {
-      UI.toast(`Hit ${target.name}! They dropped ${lost} beer${s}`, 'good');
+      UI.toast(pts ? `Hit ${target.name}! +${pts} points` : `Hit ${target.name}, but their tray was empty`, 'good');
     }
   }
 
@@ -336,25 +340,21 @@
     if (!ok) A.play('deny');
   };
 
-  // ------------------------------------------------------------ throwing (you): face your target
-  G.startAim = function () {
+  // ------------------------------------------------------------ throwing (you): face your target, tap Throw
+  // While you carry a glass, G.target is the rival inside your facing fan (highlighted every frame).
+  G.throwNow = function () {
+    if (G.state !== 'playing') return;
     const h = G.human;
-    if (G.state !== 'playing' || h.glasses <= 0 || h.stunT > 0 || h.fallT > 0) return;
-    G.aim = { target: null };
-  };
-
-  G.cancelAim = function () {
-    G.aim = null;
-    G.chars.forEach((c) => { c.ring.visible = false; });
-  };
-
-  G.releaseThrow = function () {
-    if (!G.aim) return;
-    const t = G.aim.target;
-    if (t) G.throwGlass(G.human, t);
-    else if (G.aim.safeOnly) { UI.toast('They\'re safe near the bar', 'warn'); A.play('deny'); }
+    if (h.glasses <= 0 || h.stunT > 0 || h.fallT > 0) { A.play('deny'); return; }
+    const t = pickTarget();
+    if (t) G.throwGlass(h, t);
+    else if (G.safeOnly) { UI.toast('They\'re safe near the bar', 'warn'); A.play('deny'); }
     else { UI.toast(`Turn towards a rival within ${C.throwRange} m`, 'warn'); A.play('deny'); }
-    G.cancelAim();
+  };
+
+  G.clearTarget = function () {
+    G.target = null;
+    G.chars.forEach((c) => { c.ring.visible = false; });
   };
 
   // Target = the rival in range closest to the direction your character faces
@@ -372,25 +372,22 @@
       if (c.isSafe()) { safeSeen = true; continue; }
       if (dot > bd) { bd = dot; best = c; }
     }
-    if (G.aim) G.aim.safeOnly = !best && safeSeen;
+    G.safeOnly = !best && safeSeen;
     return best;
   }
 
-  function updateAim() {
+  function updateTargeting() {
     const h = G.human;
-    const live = G.state === 'playing' && h.fallT <= 0;
-    // The fan shows faintly whenever you hold a glass, brightly while aiming
-    G.fan.visible = live && h.glasses > 0;
-    if (G.fan.visible) {
-      G.fan.position.x = h.x;
-      G.fan.position.z = h.z;
-      G.fan.rotation.y = h.facing - Math.PI / 2;
-    }
-    if (!G.aim) { G.fanMat.opacity = 0.1; G.fanMat.color.setHex(0xf4a72c); return; }
-    if (h.glasses <= 0 || h.stunT > 0 || h.fallT > 0) { G.cancelAim(); return; }
+    const live = G.state === 'playing' && h.fallT <= 0 && h.glasses > 0;
+    // The fan shows whenever you hold a glass; it turns red when a rival is lined up
+    G.fan.visible = live;
+    if (!live) { if (G.target !== null) G.clearTarget(); return; }
+    G.fan.position.x = h.x;
+    G.fan.position.z = h.z;
+    G.fan.rotation.y = h.facing - Math.PI / 2;
     const best = pickTarget();
-    G.aim.target = best;
-    G.fanMat.opacity = 0.22 + Math.sin(G.time * 8) * 0.05;
+    G.target = best;
+    G.fanMat.opacity = best ? 0.22 + Math.sin(G.time * 8) * 0.05 : 0.12;
     G.fanMat.color.setHex(best ? 0xe5533d : 0xf4a72c);
     G.chars.forEach((c) => {
       c.ring.visible = c === best;
@@ -663,7 +660,7 @@
     sfx(c, 'fall');
     if (lost > 0) sfx(c, 'loseBeers');
     if (c.isHuman) {
-      G.cancelAim();
+      G.clearTarget();
       if (G.state === 'playing') {
         UI.toast(lost ? `You fell into the cellar! −${lost} beer${lost === 1 ? '' : 's'}` : 'You fell into the cellar!', 'bad');
         G.shake = 0.35;
@@ -788,7 +785,7 @@
     step(dt);
     updateFx(dt);
     G.chars.forEach((c) => c.animate(dt, G.time));
-    updateAim();
+    updateTargeting();
     G.world.update(dt, G.time, G.chars, G.state === 'playing' ? G.human : null);
 
     // Double-vision strength eases in and out

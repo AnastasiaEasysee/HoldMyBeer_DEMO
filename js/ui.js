@@ -18,7 +18,7 @@
         hud: $('hud'), beers: $('beer-count'), beerPill: $('hud-beers'), score: $('score'), rank: $('rank'),
         timer: $('hud-timer'), timerFill: $('timer-fill'), timerText: $('timer-text'), effects: $('effects'),
         toasts: $('toasts'), action: $('btn-action'), actionLabel: $('action-label'), actionSub: $('action-sub'),
-        actionCd: $('action-cd'), throwBtn: $('btn-throw'), glassCount: $('glass-count'), aimHint: $('aim-hint'),
+        actionCd: $('action-cd'), throwBtn: $('btn-throw'), glassCount: $('glass-count'), throwSub: $('throw-sub'),
         balance: $('balance'), bubble: $('bubble'), hitFlash: $('hit-flash'), countdown: $('countdown'),
         intro: $('screen-intro'), results: $('screen-results'),
       };
@@ -124,45 +124,23 @@
       ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
         this.el.action.addEventListener(ev, () => this.el.action.classList.remove('pressed')));
 
-      // Throw button: hold to aim, swipe up to throw, let go to cancel
+      // Throw button: one tap throws at the highlighted rival (fires on touch-down)
       const tb = this.el.throwBtn;
-      this.throwPtr = null;
       tb.addEventListener('pointerdown', (e) => {
         e.preventDefault();
-        if (G.state !== 'playing' || G.human.glasses <= 0) return;
-        try { tb.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-        this.throwPtr = { id: e.pointerId, y0: e.clientY };
-        G.startAim();
+        tb.classList.add('pressed');
+        G.throwNow();
       });
-      tb.addEventListener('pointermove', (e) => {
-        const p = this.throwPtr;
-        if (!p || p.id !== e.pointerId) return;
-        const dy = p.y0 - e.clientY;
-        tb.style.setProperty('--lift', Math.max(0, Math.min(dy, 50)) + 'px');
-        if (dy > C.throwSwipePx) {
-          this.throwPtr = null;
-          tb.style.setProperty('--lift', '0px');
-          G.releaseThrow();
-        }
-      });
-      const endThrow = (e) => {
-        const p = this.throwPtr;
-        if (!p || p.id !== e.pointerId) return;
-        this.throwPtr = null;
-        tb.style.setProperty('--lift', '0px');
-        G.cancelAim();
-      };
-      tb.addEventListener('pointerup', endThrow);
-      tb.addEventListener('pointercancel', endThrow);
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) =>
+        tb.addEventListener(ev, () => tb.classList.remove('pressed')));
 
-      // Keyboard: Space = action (or throw while aiming), hold F = aim
+      // Keyboard: Space = action, F = throw
       addEventListener('keydown', (e) => {
         if (e.repeat || (e.target && e.target.tagName === 'INPUT')) return;
         if (G.state !== 'playing') return;
-        if (e.code === 'Space') { if (G.aim) G.releaseThrow(); else G.doAction(); }
-        if (e.code === 'KeyF' && G.human.glasses > 0) G.startAim();
+        if (e.code === 'Space') G.doAction();
+        if (e.code === 'KeyF') G.throwNow();
       });
-      addEventListener('keyup', (e) => { if (e.code === 'KeyF' && G.aim) G.cancelAim(); });
 
       // Double-tap the level to recalibrate tilt
       let lastTap = 0;
@@ -390,9 +368,10 @@
         el.throwBtn.hidden = v <= 0;
         el.glassCount.textContent = v;
       });
-      this.set('aiming', !!G.aim, (v) => {
+      // Throw button glows red when a rival is lined up in your fan
+      this.set('lined', !!G.target, (v) => {
         el.throwBtn.classList.toggle('aiming', v);
-        el.aimHint.hidden = !v;
+        el.throwSub.textContent = v ? 'tap!' : 'face a rival';
       });
 
       // Balance level: shows where the tray is pulling you (screen right = +x, screen down = +z)

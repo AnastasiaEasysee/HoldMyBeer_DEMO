@@ -56,7 +56,7 @@ screen (or tilting the phone away from you) walks towards the bar.
 |---|---|---|
 | Walk / balance | Tilt the phone, or the joystick (bottom-right) | `W A S D` or arrow keys |
 | Action (Get Beer / Serve / Drink) | Big coaster button | `Space` |
-| Throw a glass | Walk towards a rival so they're in the fan in front of you, hold **Throw**, swipe up. Let go to cancel | Hold `F`, then `Space` |
+| Throw a glass | Walk towards a rival so they're in the fan in front of you (it turns red and they get a ring), then tap **Throw** | `F` |
 
 ## What's in the demo
 
@@ -69,7 +69,7 @@ screen (or tilting the phone away from you) walks towards the bar.
 | Hazards | Sticky spills (slow you to 40%) and open cellar hatches (fall in, lose your whole tray, climb out after 1.4 s) |
 | Getting beers | **Get Beer** near the bar, 1 s cooldown, max 10. More beers = more tray sway and touchier balance |
 | Drinking | **Drink** away from the bar, 10 s cooldown. 5 s double vision + touchier balance; 7 s speed boost; 7 s shield (bubble); +1 empty glass |
-| Throwing | Your facing direction aims: the fan shows reach (5 m) and angle; the rival inside it is highlighted. Hit = 1 s stun, −2 beers, 5 s throw immunity |
+| Throwing | Your facing direction aims: the fan shows reach (5 m) and angle; the rival inside it is highlighted. Tap **Throw** to throw. Hit = thrower scores 2 points per beer the target was carrying, then the target is stunned 1 s, drops 2 beers and gets 5 s throw immunity |
 | Views (phone) | Top-down camera following you, name tags, tutorial → "I understand" → countdown, HUD (beers top-left, score top-middle, filling timer top-right), results with rank and score |
 | Sound | Effects for bounces, losing beers, getting a beer, throwing, drinking, falling (synthesised, no files). No music, since the spec puts music on the desktop only |
 
