@@ -634,6 +634,9 @@
           const nx = dx / d, nz = dz / d, push = (min - d) / 2;
           a.x += nx * push; a.z += nz * push;
           b.x -= nx * push; b.z -= nz * push;
+          // Remember who touched whom, so a push into a hatch can be credited
+          a.pushedBy = b; a.pushedT = G.time;
+          b.pushedBy = a; b.pushedT = G.time;
           const rv = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
           if (rv < 0) {
             const j2 = (-(1 + C.bounce) * rv) / 2 + C.bumpImpulse * 0.5;
@@ -660,15 +663,32 @@
     c.fall(hole);
     sfx(c, 'fall');
     if (lost > 0) sfx(c, 'loseBeers');
+
+    // Bumped in by another player shortly before? They score for every beer that went down.
+    const pusher = c.pushedBy && c.pushedBy !== c && G.time - c.pushedT <= C.pushCreditSeconds ? c.pushedBy : null;
+    const pts = pusher ? Math.round(lost * C.pushPointsPerBeer) : 0;
+    if (pusher && pts > 0) pusher.score += pts;
+    c.pushedBy = null;
+    const live = G.state === 'playing';
+    const s = lost === 1 ? '' : 's';
+
     if (c.isHuman) {
       G.clearTarget();
-      if (G.state === 'playing') {
-        UI.toast(lost ? `You fell into the cellar! −${lost} beer${lost === 1 ? '' : 's'}` : 'You fell into the cellar!', 'bad');
+      if (live) {
+        if (pusher) {
+          UI.toast(`${pusher.name} pushed you into the cellar! −${lost} beer${s}` + (pts ? `, +${pts} for them` : ''), 'bad');
+        } else {
+          UI.toast(lost ? `You fell into the cellar! −${lost} beer${s}` : 'You fell into the cellar!', 'bad');
+        }
         G.shake = 0.35;
         vibrate(200);
       }
-    } else if (G.state === 'playing' && lost > 0) {
-      floatText(`−${lost}`, hole.x, hole.z, '#e5533d');
+    } else if (live) {
+      if (pusher && pusher.isHuman) {
+        UI.toast(pts ? `You pushed ${c.name} into the cellar! +${pts} points` : `You pushed ${c.name} into the cellar!`, 'good');
+      }
+      if (pts > 0) floatText(`+${pts}`, hole.x, hole.z, pusher.isHuman ? '#6fcf7b' : '#f4a72c');
+      else if (lost > 0) floatText(`−${lost}`, hole.x, hole.z, '#e5533d');
     }
   }
 

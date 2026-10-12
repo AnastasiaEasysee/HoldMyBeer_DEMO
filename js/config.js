@@ -63,6 +63,8 @@ HMB.CONFIG = {
   // Hazards
   stickySpeed: 0.4,          // speed multiplier on sticky spills
   holeFallSeconds: 1.4,      // time spent climbing out of a cellar hatch
+  pushPointsPerBeer: 2,      // bump someone into a hatch: points per beer they lose
+  pushCreditSeconds: 2.5,    // how long after a bump a fall still counts as your push
   walkerSpeed: 1.3,          // customers walking around
 
   // Top-down camera, bar at the top of the screen
@@ -133,6 +135,8 @@ HMB.SETTINGS = [
   { group: 'Hazards', items: [
     ['stickySpeed', 'Speed on sticky floor (×)', 0.1, 1, 0.05],
     ['holeFallSeconds', 'Time stuck in a cellar hatch (s)', 0.2, 10, 0.1],
+    ['pushPointsPerBeer', 'Push into a hatch: points per beer lost', 0, 10, 0.5],
+    ['pushCreditSeconds', 'Push still counts for (s)', 0.5, 10, 0.5],
     ['walkerSpeed', 'Walking customer speed (m/s)', 0, 4, 0.1],
   ] },
 ];

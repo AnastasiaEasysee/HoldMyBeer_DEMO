@@ -208,6 +208,8 @@
       this.bumpCd = 0;
       this.fallT = 0;
       this.hole = null;
+      this.pushedBy = null;            // last player who bumped into you (for push-into-hole points)
+      this.pushedT = -99;
       this.onSticky = false;
       this.sway = { x: 0, z: 0 };      // total pull of the tray, roughly -1..1 per axis
       this.slosh = { x: 0, z: 0 };     // part of the sway caused by stopping, turning and bumps
