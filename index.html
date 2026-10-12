@@ -93,7 +93,22 @@
           <small id="mode-note"></small>
         </div>
 
-        <p class="rivals">Tonight's rivals: <span id="rival-names"></span></p>
+        <div class="field">
+          <span>AI rivals</span>
+          <div class="seg seg-4" role="radiogroup" aria-label="Number of AI rivals" id="rivals-seg">
+            <button type="button" role="radio" data-n="0" aria-checked="false">None</button>
+            <button type="button" role="radio" data-n="1" aria-checked="false">1</button>
+            <button type="button" role="radio" data-n="2" aria-checked="false">2</button>
+            <button type="button" role="radio" data-n="3" aria-checked="true">3</button>
+          </div>
+          <small id="rival-names"></small>
+        </div>
+
+        <details class="tweaks" id="tweaks">
+          <summary>Tweak the numbers <small id="tweak-count"></small></summary>
+          <div id="tweak-list"></div>
+          <button type="button" id="tweak-reset" class="ghost">Reset to defaults</button>
+        </details>
         <p class="keys">On a computer: <kbd>W A S D</kbd> or arrows walk, <kbd>Space</kbd> action, hold <kbd>F</kbd> + <kbd>Space</kbd> to throw.</p>
 
         <button id="btn-start" class="cta" type="button">I understand</button>
@@ -109,6 +124,7 @@
         <p class="result-score">Final score <b id="result-score">0</b></p>
         <ol id="standings"></ol>
         <button id="btn-again" class="cta" type="button">Play again</button>
+        <button id="btn-settings" class="ghost" type="button">Change rivals or settings</button>
       </div>
     </section>
   </div>

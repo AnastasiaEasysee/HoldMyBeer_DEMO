@@ -88,11 +88,27 @@ The tray sways by itself and **drags you off course on top of your own steering*
 - **Beers and speed:** each beer makes you slightly slower (`speedLossPerBeer`) and amplifies your lean (`sensitivityPerBeer`).
 - A rival about to throw at you shows a red **!** above their head.
 
-## Tweaking
+### Near the bar
+
+- **Safe zone:** within 3.5 m of the counter (the dashed blue line) nobody can throw at you. A glass already flying at
+  you shatters harmlessly if you reach the zone before it lands.
+- The bar counter and the bar stools never bounce you. You just stop or slide along them.
+
+## Start-screen options
+
+- **AI rivals:** None, 1, 2 or 3. "None" is a solo practice round against the clock.
+- **Tweak the numbers:** open this panel to change any gameplay value before you play. That includes the drinking
+  effects (double vision and extra sway, which are the negatives; speed boost and shield, which are the positives),
+  cooldowns, round length, throwing, the safe zone, walking, balance, bumps and hazards. Changed values are
+  highlighted, saved in your browser for next time, and **Reset to defaults** puts everything back.
+  After a round, **Change rivals or settings** takes you back to this screen.
+
+## Tweaking defaults in code
 
 Every number the spec marks "(can be tweaked)" is in [`js/config.js`](js/config.js): match length, cooldowns,
 max beers, effect durations, throw range, stun, beers dropped, walk speed, tilt sensitivity, sway, bump strength,
-hazards, camera, and the personality of each AI rival. The map layout (tables, obstacles, spills, hatches,
+hazards, camera, and the personality of each AI rival. To add a value to the start-screen panel, add a line to
+`HMB.SETTINGS` at the bottom of that file. The map layout (tables, obstacles, spills, hatches,
 walking routes) is at the top of [`js/world.js`](js/world.js).
 
 ## Files

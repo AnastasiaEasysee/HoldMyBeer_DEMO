@@ -34,6 +34,7 @@ HMB.CONFIG = {
   stunSeconds: 1,
   beersLostOnHit: 2,
   hitShieldSeconds: 5,
+  barSafeDistance: 3.5,      // nobody can hit you this close to the bar counter
 
   // Movement
   playerRadius: 0.38,
@@ -84,3 +85,53 @@ HMB.CONFIG = {
       aggression: 0.9, drinkChance: 0.45, farBias: 0.0, random: 0.3, react: [0.6, 0.9] },
   ],
 };
+
+// Factory values, used by "Reset to defaults"
+HMB.DEFAULTS = JSON.parse(JSON.stringify(HMB.CONFIG));
+
+// Numbers you can change on the start screen: [config key, label, min, max, step]
+HMB.SETTINGS = [
+  { group: 'Round', items: [
+    ['matchSeconds', 'Round length (s)', 30, 600, 10],
+  ] },
+  { group: 'Getting beers', items: [
+    ['maxBeers', 'Max beers on the tray', 1, 10, 1],
+    ['getBeerCooldown', 'Get Beer cooldown (s)', 0, 5, 0.1],
+  ] },
+  { group: 'Drinking', items: [
+    ['drinkCooldown', 'Drink cooldown (s)', 0, 60, 1],
+    ['drunkSeconds', 'Negative effects: double vision (s)', 0, 30, 0.5],
+    ['drunkWobbleMultiplier', 'Negative effects: extra sway (×)', 1, 5, 0.1],
+    ['boostSeconds', 'Positive effects: speed boost (s)', 0, 30, 0.5],
+    ['boostSpeedMultiplier', 'Positive effects: boost speed (×)', 1, 3, 0.05],
+    ['drinkShieldSeconds', 'Positive effects: shield (s)', 0, 30, 0.5],
+    ['maxGlasses', 'Max empty glasses carried', 1, 10, 1],
+  ] },
+  { group: 'Throwing', items: [
+    ['throwRange', 'Throw range (m)', 1, 15, 0.5],
+    ['throwAimConeDeg', 'Aim fan width (° each side)', 10, 90, 1],
+    ['stunSeconds', 'Stun when hit (s)', 0, 5, 0.1],
+    ['beersLostOnHit', 'Beers dropped when hit', 0, 10, 1],
+    ['hitShieldSeconds', 'Immunity after being hit (s)', 0, 20, 0.5],
+    ['barSafeDistance', 'Safe zone in front of the bar (m)', 0, 10, 0.5],
+  ] },
+  { group: 'Walking and balance', items: [
+    ['walkSpeed', 'Walk speed (m/s)', 1, 10, 0.1],
+    ['speedLossPerBeer', 'Slowdown per beer (fraction)', 0, 0.1, 0.005],
+    ['tiltMaxDeg', 'Phone tilt for full speed (°)', 5, 60, 1],
+    ['wobblePerBeer', 'Sway per beer', 0, 0.2, 0.005],
+    ['wobbleMoving', 'Extra sway while walking', 0, 5, 0.1],
+    ['swayDrift', 'Sway drift strength (m/s)', 0, 8, 0.1],
+    ['sloshCoupling', 'Slosh when stopping', 0, 0.5, 0.01],
+  ] },
+  { group: 'Bumping', items: [
+    ['bounce', 'Bounciness', 0, 1.5, 0.05],
+    ['bumpImpulse', 'Bump push (m/s)', 0, 10, 0.1],
+    ['knockSeconds', 'Control loss after a bump (s)', 0, 2, 0.05],
+  ] },
+  { group: 'Hazards', items: [
+    ['stickySpeed', 'Speed on sticky floor (×)', 0.1, 1, 0.05],
+    ['holeFallSeconds', 'Time stuck in a cellar hatch (s)', 0.2, 10, 0.1],
+    ['walkerSpeed', 'Walking customer speed (m/s)', 0, 4, 0.1],
+  ] },
+];

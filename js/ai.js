@@ -388,7 +388,7 @@
         const t = this.aim.target;
         this.aim.t -= dt;
         const d = Math.hypot(t.x - c.x, t.z - c.z);
-        if (d > C.throwRange || t.stunT > 0 || t.fallT > 0 || c.glasses <= 0) {
+        if (d > C.throwRange || t.stunT > 0 || t.fallT > 0 || t.isSafe() || c.glasses <= 0) {
           this.aim = null;
           c.alert.visible = false;
         } else if (this.aim.t <= 0) {
@@ -405,7 +405,7 @@
       const leader = g.chars.reduce((a, b) => (b.score > a.score ? b : a), g.chars[0]);
       let best = null, bw = 0;
       for (const o of g.chars) {
-        if (o === c || o.shieldT > 0 || o.stunT > 0 || o.fallT > 0 || o.beers < 1) continue;
+        if (o === c || o.shieldT > 0 || o.stunT > 0 || o.fallT > 0 || o.isSafe() || o.beers < 1) continue;
         if (Math.hypot(o.x - c.x, o.z - c.z) > C.throwRange * 0.9) continue;
         const w = o.beers + (o.isHuman ? 2 : 0) + (o === leader ? 2 : 0) + Math.random() * 2;
         if (w > bw) { bw = w; best = o; }

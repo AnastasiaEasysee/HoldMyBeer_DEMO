@@ -23,7 +23,29 @@
         intro: $('screen-intro'), results: $('screen-results'),
       };
 
-      $('rival-names').innerHTML = C.bots.map((b) => `<b style="color:${hex(b.shirt)}">${b.name}</b>`).join(', ');
+      // How many AI rivals
+      const seg = $('rivals-seg');
+      const setRivals = (n) => {
+        n = Math.max(0, Math.min(C.bots.length, Math.round(n) || 0));
+        seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.n) === n)));
+        G.setRivals(n);
+        $('rival-names').innerHTML = n
+          ? 'Playing against ' + C.bots.slice(0, n).map((b) => `<b style="color:${hex(b.shirt)}">${b.name}</b>`).join(', ')
+          : 'Solo practice: just you, the customers and the clock.';
+        try { localStorage.setItem('hmb-rivals', String(n)); } catch (_) { /* ignore */ }
+      };
+      seg.addEventListener('click', (e) => {
+        const b = e.target.closest('button');
+        if (b) setRivals(Number(b.dataset.n));
+      });
+      let rivals = C.bots.length;
+      try {
+        const s = localStorage.getItem('hmb-rivals');
+        if (s !== null && s !== '') rivals = Number(s);
+      } catch (_) { /* ignore */ }
+      setRivals(rivals);
+
+      this.setupTweaks();
 
       // Controls choice
       const tiltBtn = $('mode-tilt'), stickBtn = $('mode-stick');
@@ -57,6 +79,10 @@
         G.start(name);
       });
       $('btn-again').addEventListener('click', () => { HMB.Audio.init(); this.phoneMode(); G.restart(); });
+      $('btn-settings').addEventListener('click', () => {
+        G.toIntro();
+        this.el.intro.scrollTop = 0;
+      });
 
       // The screen wake lock is dropped when the tab is hidden; take it back on return
       document.addEventListener('visibilitychange', () => {
@@ -123,6 +149,75 @@
         }
         lastTap = now;
       });
+    },
+
+    // "Tweak the numbers": one number field per entry in HMB.SETTINGS, saved in this browser
+    setupTweaks() {
+      const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+      const fmt = (v, step) => {
+        const d = (String(step).split('.')[1] || '').length;
+        return String(parseFloat(Number(v).toFixed(d)));
+      };
+      let saved = {};
+      try { saved = JSON.parse(localStorage.getItem('hmb-settings') || '{}') || {}; } catch (_) { saved = {}; }
+
+      const list = $('tweak-list');
+      const rows = [];
+      HMB.SETTINGS.forEach((grp) => {
+        const sec = document.createElement('div');
+        sec.className = 'tweak-group';
+        const h = document.createElement('h3');
+        h.textContent = grp.group;
+        sec.appendChild(h);
+        grp.items.forEach(([key, label, min, max, step]) => {
+          if (typeof saved[key] === 'number' && isFinite(saved[key])) C[key] = clampN(saved[key], min, max);
+          const row = document.createElement('div');
+          row.className = 'tweak-row';
+          const lab = document.createElement('label');
+          lab.htmlFor = 'tw-' + key;
+          lab.textContent = label;
+          const inp = document.createElement('input');
+          inp.type = 'number';
+          inp.id = 'tw-' + key;
+          inp.min = min; inp.max = max; inp.step = step;
+          inp.inputMode = step < 1 ? 'decimal' : 'numeric';
+          inp.value = fmt(C[key], step);
+          const mark = () => row.classList.toggle('changed', C[key] !== HMB.DEFAULTS[key]);
+          const commit = (final) => {
+            const v = parseFloat(inp.value);
+            if (!isFinite(v)) { if (final) inp.value = fmt(C[key], step); return; }
+            C[key] = clampN(v, min, max);
+            if (final) inp.value = fmt(C[key], step);
+            mark();
+            this.saveTweaks();
+          };
+          inp.addEventListener('input', () => commit(false));
+          inp.addEventListener('change', () => commit(true));
+          mark();
+          rows.push({ key, step, inp, mark });
+          row.append(lab, inp);
+          sec.appendChild(row);
+        });
+        list.appendChild(sec);
+      });
+
+      $('tweak-reset').addEventListener('click', () => {
+        rows.forEach((r) => {
+          C[r.key] = HMB.DEFAULTS[r.key];
+          r.inp.value = fmt(C[r.key], r.step);
+          r.mark();
+        });
+        this.saveTweaks();
+      });
+      this.saveTweaks();
+    },
+
+    saveTweaks() {
+      const changed = {};
+      HMB.SETTINGS.forEach((g) => g.items.forEach(([k]) => { if (C[k] !== HMB.DEFAULTS[k]) changed[k] = C[k]; }));
+      try { localStorage.setItem('hmb-settings', JSON.stringify(changed)); } catch (_) { /* ignore */ }
+      const n = Object.keys(changed).length;
+      $('tweak-count').textContent = n ? `(${n} changed)` : '';
     },
 
     // On phones: go fullscreen, stay in portrait and keep the screen on (tilt play rarely touches it).
@@ -198,7 +293,9 @@
 
       const sorted = G.standings();
       const rank = sorted.indexOf(h) + 1;
-      this.set('rank', rank, (v) => { el.rank.textContent = `${ordinal(v)} of ${G.chars.length}`; });
+      this.set('rank', rank + '/' + G.chars.length, () => {
+        el.rank.textContent = G.chars.length > 1 ? `${ordinal(rank)} of ${G.chars.length}` : 'Solo';
+      });
 
       const frac = 1 - Math.max(0, G.remaining) / C.matchSeconds;
       this.set('timerFill', Math.round(frac * 400), () => {
@@ -215,6 +312,7 @@
       if (h.fallT > 0) fx.push(['dazed', 'In the cellar']);
       if (h.stunT > 0) fx.push(['dazed', 'Dazed']);
       if (h.onSticky && h.fallT <= 0) fx.push(['sticky', 'Sticky floor']);
+      if (h.isSafe() && C.barSafeDistance > 0 && G.chars.length > 1) fx.push(['safe', 'Safe zone']);
       if (h.boostT > 0) fx.push(['boost', `Speed ${Math.ceil(h.boostT)}s`]);
       if (h.shieldT > 0) fx.push(['shield', `Shield ${Math.ceil(h.shieldT)}s`]);
       if (h.drunkT > 0) fx.push(['dizzy', `Seeing double ${Math.ceil(h.drunkT)}s`]);
@@ -256,8 +354,11 @@
       const list = G.standings();
       const h = G.human;
       const rank = list.indexOf(h) + 1;
-      $('result-title').textContent = rank === 1 ? 'You win!' : rank === 2 ? 'So close!' : 'Better luck next round';
-      $('result-rank').textContent = ordinal(rank);
+      const solo = list.length === 1;
+      $('result-title').textContent = solo ? 'Round over' : rank === 1 ? 'You win!' : rank === 2 ? 'So close!' : 'Better luck next round';
+      $('result-rank').textContent = solo ? h.score : ordinal(rank);
+      $('result-rank').nextElementSibling.textContent = solo ? 'points' : 'place';
+      $('standings').hidden = solo;
       $('result-score').textContent = h.score;
       const ol = $('standings');
       ol.innerHTML = '';

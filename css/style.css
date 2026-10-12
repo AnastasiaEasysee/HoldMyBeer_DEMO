@@ -189,6 +189,7 @@ button { font: inherit; color: inherit; }
 .chip.dizzy { background: #f2a0c6; }
 .chip.dazed { background: var(--cherry); color: var(--foam); }
 .chip.sticky { background: #b0701c; color: var(--foam); }
+.chip.safe { background: transparent; color: var(--shield); border: 1.5px solid var(--shield); }
 
 #toasts {
   position: absolute;
@@ -495,8 +496,74 @@ h2 {
 .seg button[aria-checked="true"] { background: var(--amber); color: var(--ink); }
 .seg button:focus-visible { outline: 2px solid var(--shield); }
 
-.rivals { margin: 0; font-size: 14px; font-weight: 800; color: var(--muted); text-align: center; }
-.rivals b { color: var(--foam); }
+.seg.seg-4 { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+#rival-names b { font-weight: 900; }
+
+/* number tweaks */
+.tweaks {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+}
+.tweaks summary {
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--amber);
+  cursor: pointer;
+  list-style-position: inside;
+}
+.tweaks summary small { letter-spacing: 0.04em; text-transform: none; color: var(--muted); font-weight: 800; }
+.tweaks summary:focus-visible { outline: 2px solid var(--shield); border-radius: 12px; }
+#tweak-list { display: flex; flex-direction: column; gap: 14px; padding: 0 14px 4px; }
+.tweak-group h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.tweak-row {
+  display: grid;
+  grid-template-columns: 1fr 84px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 700;
+  color: #eadfc9;
+}
+.tweak-row label { min-width: 0; }
+.tweak-row.changed label { color: var(--amber); }
+.tweak-row input {
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--wood);
+  color: var(--foam);
+  font: 800 15px var(--font-body);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+}
+.tweak-row input:focus { outline: 2px solid var(--amber); outline-offset: 1px; }
+.ghost {
+  padding: 11px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--foam);
+  font-weight: 900;
+  font-size: 14px;
+  cursor: pointer;
+}
+.ghost:focus-visible { outline: 2px solid var(--shield); outline-offset: 2px; }
+.tweaks .ghost { margin: 12px 14px 14px; width: calc(100% - 28px); }
 .keys { margin: 0; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.8; }
 kbd {
   display: inline-block;

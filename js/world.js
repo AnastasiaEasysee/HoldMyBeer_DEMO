@@ -31,8 +31,9 @@
     { x:  4.5, z: 32,   r: 1.0,  points: 5, stools: [-R, L] },
   ];
   const stools = [
-    // bar stools
-    { x: -9, z: 2.05 }, { x: -4.5, z: 2.05 }, { x: 0, z: 2.05 }, { x: 4.5, z: 2.05 }, { x: 9, z: 2.05 },
+    // bar stools (soft: you slide past them instead of bouncing)
+    { x: -9, z: 2.05, bar: true }, { x: -4.5, z: 2.05, bar: true }, { x: 0, z: 2.05, bar: true },
+    { x: 4.5, z: 2.05, bar: true }, { x: 9, z: 2.05, bar: true },
   ];
   tables.forEach((t) => t.stools.forEach((a) => {
     stools.push({ x: t.x + Math.cos(a) * (t.r + 0.42), z: t.z + Math.sin(a) * (t.r + 0.42) });
@@ -85,7 +86,7 @@
   // Static collision circles
   HMB.obstacles = [
     ...tables.map((t) => ({ x: t.x, z: t.z, r: t.r, kind: 'table' })),
-    ...stools.map((s) => ({ x: s.x, z: s.z, r: 0.24, kind: 'stool' })),
+    ...stools.map((s) => ({ x: s.x, z: s.z, r: 0.24, kind: 'stool', soft: !!s.bar })),
     ...people.map((p) => ({ x: p.x, z: p.z, r: 0.36, kind: 'person' })),
   ];
 
@@ -418,6 +419,17 @@
     barZone.position.set(0, 0.012, C.barFrontZ + zoneDepth / 2);
     scene.add(barZone);
 
+    // Safe-zone line: nobody can hit you between here and the bar
+    const safeTex = canvasTex(64, 8, (g, w, h) => {
+      g.clearRect(0, 0, w, h);
+      g.fillStyle = 'rgba(127,216,232,0.9)';
+      g.fillRect(0, 0, w * 0.6, h);   // dashes
+    }, (W - 0.8) / 1.2, 1);
+    const safeLine = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.8, 0.12),
+      new THREE.MeshBasicMaterial({ map: safeTex, transparent: true, opacity: 0.55, depthWrite: false }));
+    safeLine.rotation.x = -Math.PI / 2;
+    scene.add(safeLine);
+
     // Bartender
     const bartender = HMB.buildFigure({ shirt: 0x1e1e1e, pants: 0x1e1e1e, hair: 0x5a3a1a, apron: true });
     bartender.root.position.set(0, 0, 0.55);
@@ -600,11 +612,24 @@
       });
     });
 
+    // Floor markings that depend on tweakable numbers; rebuilt when settings change
+    function applyConfig() {
+      safeLine.position.set(0, 0.016, C.barFrontZ + C.playerRadius + C.barSafeDistance);
+      safeLine.visible = C.barSafeDistance > 0;
+      tables.forEach((t) => {
+        const reach = t.r + C.playerRadius + C.serveReach;
+        t.ring.geometry.dispose();
+        t.ring.geometry = new THREE.RingGeometry(reach - 0.08, reach, 48);
+      });
+    }
+    applyConfig();
+
     return {
       tables,
       barZone,
       bartender,
       walkers,
+      applyConfig,
       resetWalkers() { walkers.forEach((w) => w.reset()); },
       updateWalkers(dt, chars) {
         const others = [...chars, ...walkers];

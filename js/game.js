@@ -42,23 +42,22 @@
 
     const sp = HMB.MAP.spawns;
     G.human = new HMB.Character(G, { name: 'You', isHuman: true, shirt: C.humanColor, pants: 0x2a3550, hair: 0x4a2a14, x: sp[0].x, z: sp[0].z });
-    G.chars = [G.human];
-    C.bots.forEach((b, i) => {
+    G.human.spawn = sp[0];
+    G.allBots = C.bots.map((b, i) => {
       const c = new HMB.Character(G, Object.assign({}, b, { x: sp[i + 1].x, z: sp[i + 1].z }));
-      G.chars.push(c);
-      G.bots.push(new HMB.BotBrain(G, c, b));
+      c.spawn = sp[i + 1];
+      return new HMB.BotBrain(G, c, b);
     });
+    G.setRivals(C.bots.length);
 
     // Throw fan: shows which way you're facing and how far a glass reaches
-    const cone = C.throwAimConeDeg * Math.PI / 180;
-    const fanGeo = new THREE.CircleGeometry(C.throwRange, 32, -cone, cone * 2);
-    fanGeo.rotateX(-Math.PI / 2);
     G.fanMat = new THREE.MeshBasicMaterial({ color: 0xf4a72c, transparent: true, opacity: 0.12, depthWrite: false });
-    G.fan = new THREE.Mesh(fanGeo, G.fanMat);
+    G.fan = new THREE.Mesh(new THREE.BufferGeometry(), G.fanMat);
     G.fan.position.y = 0.02;
     G.fan.renderOrder = 2;
     G.fan.visible = false;
     G.scene.add(G.fan);
+    G.applyConfig();
 
     setupPost();
     I.init();
@@ -74,6 +73,29 @@
 
   // Everyone who moves: players and walking customers
   G.movers = function () { return G.chars.concat(G.world.walkers); };
+
+  // How many AI rivals play (0–3). Unused rivals are hidden and skipped.
+  G.setRivals = function (n) {
+    n = clamp(Math.round(n), 0, G.allBots.length);
+    G.bots = G.allBots.slice(0, n);
+    G.chars = [G.human].concat(G.bots.map((b) => b.c));
+    G.allBots.forEach((b, i) => {
+      const on = i < n;
+      b.c.fig.root.visible = on;
+      if (!on) { b.c.reset(b.c.spawn.x, b.c.spawn.z); b.c.fig.root.visible = false; b.reset(); }
+    });
+  };
+
+  // Re-read numbers that shape geometry (after the start-screen settings change)
+  G.applyConfig = function () {
+    const cone = C.throwAimConeDeg * Math.PI / 180;
+    const geo = new THREE.CircleGeometry(C.throwRange, 32, -cone, cone * 2);
+    geo.rotateX(-Math.PI / 2);
+    G.fan.geometry.dispose();
+    G.fan.geometry = geo;
+    G.world.applyConfig();
+    G.human.beers = Math.min(G.human.beers, C.maxBeers);
+  };
 
   // Double-vision post effect (only rendered while you are tipsy)
   function setupPost() {
@@ -119,8 +141,18 @@
   // ------------------------------------------------------------ flow
   G.start = function (name) {
     G.human.name = name;
+    G.applyConfig();
     UI.showIntro(false);
     G.restart();
+  };
+
+  // Back to the start screen (to change settings or rivals)
+  G.toIntro = function () {
+    UI.hideResults();
+    UI.showHUD(false);
+    resetMatch();
+    G.state = 'intro';
+    UI.showIntro(true);
   };
 
   G.restart = function () {
@@ -135,8 +167,7 @@
   };
 
   function resetMatch() {
-    const sp = HMB.MAP.spawns;
-    G.chars.forEach((c, i) => c.reset(sp[i].x, sp[i].z));
+    G.chars.forEach((c) => c.reset(c.spawn.x, c.spawn.z));
     G.bots.forEach((b) => b.reset());
     G.world.resetWalkers();
     G.fx.forEach((f) => f.dispose && f.dispose());
@@ -220,7 +251,7 @@
   };
 
   G.throwGlass = function (c, target) {
-    if (c.glasses <= 0 || c.stunT > 0 || c.fallT > 0 || !target || target.fallT > 0) return false;
+    if (c.glasses <= 0 || c.stunT > 0 || c.fallT > 0 || !target || target.fallT > 0 || target.isSafe()) return false;
     if (Math.hypot(target.x - c.x, target.z - c.z) > C.throwRange) return false;
     c.glasses--;
     projectileFx(c, target);
@@ -232,6 +263,14 @@
     const live = G.state === 'playing';
     if (target.fallT > 0) {
       shatterFx(mesh.position.x, 0.06, mesh.position.z, false);
+      return;
+    }
+    if (target.isSafe()) {
+      // Made it back to the bar before the glass landed
+      sfx(target, 'blocked');
+      shatterFx(mesh.position.x, 0.06, mesh.position.z, false);
+      if (live && target.isHuman) UI.toast('Safe at the bar!', 'good');
+      else if (live && from.isHuman) UI.toast(`${target.name} is safe at the bar`, 'warn');
       return;
     }
     if (target.shieldT > 0) {
@@ -313,6 +352,7 @@
     if (!G.aim) return;
     const t = G.aim.target;
     if (t) G.throwGlass(G.human, t);
+    else if (G.aim.safeOnly) { UI.toast('They\'re safe near the bar', 'warn'); A.play('deny'); }
     else { UI.toast(`Turn towards a rival within ${C.throwRange} m`, 'warn'); A.play('deny'); }
     G.cancelAim();
   };
@@ -322,14 +362,17 @@
     const h = G.human;
     const fx = Math.sin(h.facing), fz = Math.cos(h.facing);
     const cone = Math.cos(C.throwAimConeDeg * Math.PI / 180);
-    let best = null, bd = -1;
+    let best = null, bd = -1, safeSeen = false;
     for (const c of G.chars) {
       if (c === h || c.fallT > 0) continue;
       const dx = c.x - h.x, dz = c.z - h.z, d = Math.hypot(dx, dz);
       if (d > C.throwRange || d < 0.01) continue;
       const dot = (dx * fx + dz * fz) / d;
-      if (dot > cone && dot > bd) { bd = dot; best = c; }
+      if (dot <= cone) continue;
+      if (c.isSafe()) { safeSeen = true; continue; }
+      if (dot > bd) { bd = dot; best = c; }
     }
+    if (G.aim) G.aim.safeOnly = !best && safeSeen;
     return best;
   }
 
@@ -541,6 +584,12 @@
     bump(c, -vn, nx, nz);
   }
 
+  // Stop moving into something without bouncing (the bar counter and bar stools)
+  function slideAlong(c, nx, nz) {
+    const vn = c.vx * nx + c.vz * nz;
+    if (vn < 0) { c.vx -= vn * nx; c.vz -= vn * nz; }
+  }
+
   function collide() {
     const RM = C.room;
     const walkers = G.world.walkers;
@@ -555,7 +604,8 @@
           const nx = dx / d, nz = dz / d;
           c.x = o.x + nx * min;
           c.z = o.z + nz * min;
-          bounceOff(c, nx, nz, 0, 0);
+          if (o.soft) slideAlong(c, nx, nz);
+          else bounceOff(c, nx, nz, 0, 0);
         }
       }
       // walking customers don't budge, they shove you aside
@@ -572,7 +622,7 @@
       // walls and the bar counter
       if (c.x < RM.minX + r) { c.x = RM.minX + r; if (c.vx < 0) bounceOff(c, 1, 0, 0, 0); }
       if (c.x > RM.maxX - r) { c.x = RM.maxX - r; if (c.vx > 0) bounceOff(c, -1, 0, 0, 0); }
-      if (c.z < C.barFrontZ + r) { c.z = C.barFrontZ + r; if (c.vz < 0) bounceOff(c, 0, 1, 0, 0); }
+      if (c.z < C.barFrontZ + r) { c.z = C.barFrontZ + r; slideAlong(c, 0, 1); }   // the bar never bounces you
       if (c.z > RM.maxZ - r) { c.z = RM.maxZ - r; if (c.vz > 0) bounceOff(c, 0, -1, 0, 0); }
     }
     // players bounce off each other

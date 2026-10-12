@@ -219,6 +219,8 @@
 
     inBarZone() { return this.z - this.radius <= C.barFrontZ + C.barReach; }
     barDistance() { return this.z - this.radius - C.barFrontZ; }
+    // Near the bar nobody can hit you with a glass
+    isSafe() { return this.barDistance() < C.barSafeDistance; }
     canDrink() {
       return this.beers > 0 && this.drinkCd <= 0 && this.stunT <= 0 && this.barDistance() >= C.drinkMinBarDistance;
     }
