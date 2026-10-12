@@ -409,7 +409,45 @@
         li.querySelector('.nm').textContent = c === h && c.name.toLowerCase() !== 'you' ? `${c.name} (you)` : c.name;
         ol.appendChild(li);
       });
+      this.renderAwards(list, h, solo);
       this.el.results.hidden = false;
+      this.el.results.scrollTop = 0;
+    },
+
+    // Awards: the player(s) with the highest value of each stat. Nobody gets an award for zero.
+    renderAwards(list, h, solo) {
+      const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + 's')}`;
+      const AWARDS = [
+        ['biggest', 'Biggest round', 'Most beers served in one go', (n) => plural(n, 'beer')],
+        ['served', 'Top server', 'Most beers served in total', (n) => plural(n, 'beer')],
+        ['hitsLanded', 'Sharpshooter', 'Most glasses that hit', (n) => plural(n, 'hit')],
+        ['hitsTaken', 'Punching bag', 'Got hit the most', (n) => plural(n, 'time')],
+        ['blocks', 'Iron shield', 'Blocked the most glasses', (n) => plural(n, 'block')],
+        ['pushes', 'Bouncer', 'Pushed the most rivals into a hatch', (n) => plural(n, 'push', 'pushes')],
+        ['falls', 'Cellar dweller', 'Fell into hatches the most', (n) => plural(n, 'fall')],
+        ['lost', 'Butterfingers', 'Lost the most beers', (n) => plural(n, 'beer')],
+        ['drinks', 'Thirsty', 'Drank the most', (n) => plural(n, 'drink')],
+      ];
+      $('awards-title').textContent = solo ? 'Your round' : 'Awards';
+      const ul = $('awards');
+      ul.innerHTML = '';
+      AWARDS.forEach(([key, title, desc, fmt]) => {
+        const best = Math.max(...list.map((c) => c.stats[key]));
+        if (!(best > 0)) return;
+        const winners = list.filter((c) => c.stats[key] === best);
+        const li = document.createElement('li');
+        li.className = 'award' + (winners.includes(h) ? ' me' : '');
+        li.innerHTML = `<span class="aw-title"></span><span class="aw-who"><span class="dot"></span><span></span></span><span class="aw-val"></span><span class="aw-desc"></span>`;
+        li.querySelector('.aw-title').textContent = title;
+        li.querySelector('.aw-who .dot').style.background = winners.length === 1 ? hex(winners[0].color) : 'var(--muted)';
+        li.querySelector('.aw-who span:last-child').textContent = winners.map((c) => c.name).join(' & ');
+        li.querySelector('.aw-val').textContent = fmt(best);
+        li.querySelector('.aw-desc').textContent = desc;
+        ul.appendChild(li);
+      });
+      if (!ul.children.length) {
+        ul.innerHTML = '<p class="awards-empty">No awards this round. Serve a table or land a throw to get on the board.</p>';
+      }
     },
 
     hideResults() { this.el.results.hidden = true; },

@@ -210,6 +210,8 @@
       this.hole = null;
       this.pushedBy = null;            // last player who bumped into you (for push-into-hole points)
       this.pushedT = -99;
+      // End-of-round statistics
+      this.stats = { biggest: 0, served: 0, hitsLanded: 0, hitsTaken: 0, blocks: 0, pushes: 0, falls: 0, lost: 0, drinks: 0 };
       this.onSticky = false;
       this.sway = { x: 0, z: 0 };      // total pull of the tray, roughly -1..1 per axis
       this.slosh = { x: 0, z: 0 };     // part of the sway caused by stopping, turning and bumps

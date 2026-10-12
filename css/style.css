@@ -636,6 +636,46 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 #standings li.me { outline: 2px solid var(--hops); }
+
+/* end-of-round awards */
+.awards-wrap { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.awards-wrap h2 { margin: 6px 0 0; }
+#awards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.award {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel);
+}
+.award.me { box-shadow: inset 0 0 0 2px var(--hops); }
+.aw-title { font-size: 11px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: var(--amber); }
+.aw-desc { font-size: 11px; font-weight: 700; color: var(--muted); line-height: 1.3; }
+.aw-who { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 900; color: var(--foam); min-width: 0; }
+.aw-who span:last-child { overflow-wrap: anywhere; }
+.aw-who .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+.aw-val { font-family: var(--font-display); font-size: 20px; line-height: 1.1; color: var(--foam); font-variant-numeric: tabular-nums; }
+.awards-empty { grid-column: 1 / -1; margin: 0; font-size: 13px; font-weight: 700; color: var(--muted); }
+
+/* keep Play again in reach while the results scroll */
+.result-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 4px;
+  background: linear-gradient(180deg, rgba(20, 13, 9, 0) 0%, rgba(20, 13, 9, 0.96) 24%);
+}
 #standings .pos { font-family: var(--font-display); font-weight: 400; color: var(--muted); }
 #standings .dot { width: 12px; height: 12px; border-radius: 50%; }
 #standings .pts { font-family: var(--font-display); font-weight: 400; font-size: 20px; color: var(--amber); }

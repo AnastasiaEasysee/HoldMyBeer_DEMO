@@ -231,6 +231,8 @@
     if (!t || c.beers <= 0 || c.stunT > 0 || c.fallT > 0) return false;
     const pts = c.beers * t.points;
     c.score += pts;
+    c.stats.served += c.beers;
+    c.stats.biggest = Math.max(c.stats.biggest, c.beers);
     serveFx(c, t, c.beers, pts);
     c.beers = 0;
     sfx(c, 'serve');
@@ -241,6 +243,7 @@
   G.tryDrink = function (c) {
     if (!c.canDrink() || c.fallT > 0) return false;
     c.beers--;
+    c.stats.drinks++;
     c.drinkCd = C.drinkCooldown;
     c.drunkT = C.drunkSeconds;
     c.boostT = C.boostSeconds;
@@ -275,6 +278,7 @@
       return;
     }
     if (target.shieldT > 0) {
+      target.stats.blocks++;
       sfx(target, 'blocked');
       if (live && target.isHuman) UI.toast(`Your shield blocked ${from.name}'s glass`, 'good');
       else if (live && from.isHuman) UI.toast(`${target.name}'s shield blocked it`, 'warn');
@@ -289,6 +293,9 @@
     target.vx *= 0.2;
     target.vz *= 0.2;
     const lost = Math.min(C.beersLostOnHit, target.beers);
+    from.stats.hitsLanded++;
+    target.stats.hitsTaken++;
+    target.stats.lost += lost;
     if (lost > 0) dropBeersFx(target, lost);
     target.beers -= lost;
     target.setShield(C.hitShieldSeconds, 'hit');
@@ -668,6 +675,9 @@
     const pusher = c.pushedBy && c.pushedBy !== c && G.time - c.pushedT <= C.pushCreditSeconds ? c.pushedBy : null;
     const pts = pusher ? Math.round(lost * C.pushPointsPerBeer) : 0;
     if (pusher && pts > 0) pusher.score += pts;
+    c.stats.falls++;
+    c.stats.lost += lost;
+    if (pusher) pusher.stats.pushes++;
     c.pushedBy = null;
     const live = G.state === 'playing';
     const s = lost === 1 ? '' : 's';
