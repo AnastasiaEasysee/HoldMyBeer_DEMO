@@ -39,8 +39,10 @@ After you change something, upload or push again; Pages updates within a minute 
 On iPhone, the game asks for motion permission when you tap **I understand**. Allow it, or tilt won't work.
 On Android, the game goes fullscreen and keeps the screen awake while you play.
 
-The angle you hold the phone at when the countdown says **GO!** counts as level. Double-tap the small level
-(bottom centre) to recalibrate mid-round.
+Before each round in tilt mode, the game asks you to hold the phone the way you want to play. The tilt at the moment
+you tap **Set this tilt as default** becomes the level (no-movement) position of the gyroscope. The button stays
+greyed out until the tilt sensor reports, and **Use the joystick instead** skips tilt for that round. Double-tap the
+small level (bottom centre) to recalibrate mid-round.
 
 If you'd rather not use GitHub, any HTTPS host works, or a local server plus a tunnel:
 `npx serve .` then `npx localtunnel --port 3000`.

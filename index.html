@@ -115,6 +115,20 @@
       </div>
     </section>
 
+    <!-- ===== Tilt calibration (tilt mode, before each round) ===== -->
+    <section id="screen-calibrate" class="screen calibrate" hidden>
+      <div class="card">
+        <p class="eyebrow">Tilt controls</p>
+        <div class="phone-tilt" aria-hidden="true"><div class="phone-body"><div class="phone-bubble"></div></div></div>
+        <h1>Hold your phone the way you want to play</h1>
+        <p class="cal-text">The current tilt of your phone will be the default position of your gyroscope.</p>
+        <p id="cal-status" class="cal-status" role="status">Waiting for the tilt sensor…</p>
+        <button id="btn-calibrate" class="cta" type="button" disabled>Set this tilt as default</button>
+        <button id="btn-cal-stick" class="ghost" type="button">Use the joystick instead</button>
+        <p class="keys">You can reset it during a round by double-tapping the level at the bottom of the screen.</p>
+      </div>
+    </section>
+
     <!-- ===== Results ===== -->
     <section id="screen-results" class="screen" hidden>
       <div class="card results">

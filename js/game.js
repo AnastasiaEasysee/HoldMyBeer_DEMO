@@ -742,7 +742,6 @@
         else {
           UI.countdown('GO!', true);
           A.play('go');
-          if (I.mode === 'tilt') I.calibrate();
         }
       }
       if (G.countdownT <= 0) {

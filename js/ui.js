@@ -54,9 +54,10 @@
         tiltBtn.setAttribute('aria-checked', String(m === 'tilt'));
         stickBtn.setAttribute('aria-checked', String(m === 'stick'));
         $('mode-note').textContent = m === 'tilt'
-          ? 'Hold the phone how you like. That angle counts as level when the round starts.'
+          ? 'Before the round you\'ll set how you hold the phone as the level position.'
           : 'The joystick walks. Push further to go faster.';
       };
+      this.setControlMode = setMode;
       tiltBtn.addEventListener('click', () => setMode('tilt'));
       stickBtn.addEventListener('click', () => setMode('stick'));
       // HMB.noTilt: set by hosts that block motion sensors
@@ -76,9 +77,34 @@
           const ok = await HMB.Input.requestTilt();
           if (!ok) setMode('stick');
         }
-        G.start(name);
+        if (HMB.Input.mode === 'tilt') {
+          this.showIntro(false);
+          this.calibrate(() => G.start(name));
+        } else {
+          G.start(name);
+        }
       });
-      $('btn-again').addEventListener('click', () => { HMB.Audio.init(); this.phoneMode(); G.restart(); });
+      $('btn-again').addEventListener('click', () => {
+        HMB.Audio.init();
+        this.phoneMode();
+        if (HMB.Input.mode === 'tilt') {
+          this.hideResults();
+          this.calibrate(() => G.restart());
+        } else {
+          G.restart();
+        }
+      });
+
+      // Tilt calibration prompt
+      $('btn-calibrate').addEventListener('click', () => {
+        HMB.Input.calibrate();          // the phone's tilt right now becomes "level"
+        HMB.Audio.play('beep');
+        this.finishCalibrate();
+      });
+      $('btn-cal-stick').addEventListener('click', () => {
+        setMode('stick');
+        this.finishCalibrate();
+      });
       $('btn-settings').addEventListener('click', () => {
         G.toIntro();
         this.el.intro.scrollTop = 0;
@@ -149,6 +175,36 @@
         }
         lastTap = now;
       });
+    },
+
+    // Ask the player to hold the phone how they'll play, then store that tilt as the neutral position.
+    calibrate(onDone) {
+      const scr = $('screen-calibrate'), btn = $('btn-calibrate'), status = $('cal-status');
+      this.calDone = onDone;
+      scr.hidden = false;
+      const t0 = performance.now();
+      const tick = () => {
+        if (scr.hidden) return;
+        const seen = HMB.Input.gyro.seen;
+        const late = performance.now() - t0 > 2500;
+        btn.disabled = !seen;
+        status.classList.toggle('ok', seen);
+        status.classList.toggle('bad', !seen && late);
+        status.textContent = seen
+          ? 'Tilt sensor ready. Hold still and tap the button.'
+          : late
+            ? 'No tilt sensor found. Tilt controls need an HTTPS link, such as GitHub Pages, and motion access allowed.'
+            : 'Waiting for the tilt sensor…';
+        requestAnimationFrame(tick);
+      };
+      tick();
+    },
+
+    finishCalibrate() {
+      $('screen-calibrate').hidden = true;
+      const done = this.calDone;
+      this.calDone = null;
+      if (done) done();
     },
 
     // "Tweak the numbers": one number field per entry in HMB.SETTINGS, saved in this browser

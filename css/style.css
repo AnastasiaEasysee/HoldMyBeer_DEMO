@@ -592,6 +592,42 @@ kbd {
 .cta:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
 .cta:focus-visible { outline: 3px solid var(--shield); outline-offset: 3px; }
 
+.cta:disabled { opacity: 0.4; cursor: default; }
+.cta:disabled:active { transform: none; box-shadow: 0 5px 0 var(--ink); }
+
+/* tilt calibration */
+.calibrate .card { padding-top: 8vh; text-align: center; }
+.calibrate h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 34px; line-height: 1.05; text-wrap: balance; }
+.cal-text { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.4; color: var(--foam); text-wrap: balance; }
+.cal-status { margin: 0; font-size: 14px; font-weight: 800; color: var(--muted); min-height: 2.8em; text-wrap: balance; }
+.cal-status.ok { color: var(--hops); }
+.cal-status.bad { color: #ffb4a8; }
+.phone-tilt { display: grid; place-items: center; height: 120px; }
+.phone-body {
+  position: relative;
+  width: 58px;
+  height: 104px;
+  border-radius: 12px;
+  border: 3px solid var(--foam);
+  background: var(--wood);
+  animation: tilt 3s ease-in-out infinite;
+}
+.phone-bubble {
+  position: absolute;
+  left: calc(50% - 9px);
+  top: calc(50% - 9px);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--hops);
+  box-shadow: 0 0 10px rgba(111, 207, 123, 0.8);
+}
+@keyframes tilt {
+  0%, 100% { transform: perspective(300px) rotateX(28deg); }
+  50% { transform: perspective(300px) rotateX(38deg) rotateY(6deg); }
+}
+@media (prefers-reduced-motion: reduce) { .phone-body { animation: none; transform: perspective(300px) rotateX(30deg); } }
+
 .results { padding-top: 6vh; text-align: center; }
 .eyebrow { margin: 0; font-size: 13px; font-weight: 900; letter-spacing: 0.18em; text-transform: uppercase; color: var(--amber); }
 .results h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: 1; text-wrap: balance; }
