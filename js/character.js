@@ -44,6 +44,9 @@
     [0.065, -0.115], [-0.065, -0.115], [0.24, 0.08], [-0.24, 0.08], [0, 0.24],
   ];
 
+  const TRAY_LAYERS = 3;   // so the tray can show up to 30 beers
+  HMB.TRAY_CAPACITY = SLOTS.length * TRAY_LAYERS;
+
   // Local +z is "forward" for every figure.
   HMB.buildFigure = function (o) {
     shared();
@@ -102,13 +105,18 @@
       lean.add(tray);
       const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.34, 0.025, 24), L(0xb9b4a8));
       tray.add(plate);
-      SLOTS.forEach(([sx, sz]) => {
-        const p = HMB.makePint(false);
-        p.position.set(sx, 0.012, sz);
-        p.visible = false;
-        tray.add(p);
-        glasses.push(p);
-      });
+      // Ten glasses per layer; beers 11–20 and 21–30 are stacked on top of the layer below
+      for (let layer = 0; layer < TRAY_LAYERS; layer++) {
+        const shrink = 1 - layer * 0.1, turn = layer * 0.5;
+        const ct = Math.cos(turn), st = Math.sin(turn);
+        SLOTS.forEach(([sx, sz]) => {
+          const p = HMB.makePint(false);
+          p.position.set((sx * ct - sz * st) * shrink, 0.012 + layer * 0.2, (sx * st + sz * ct) * shrink);
+          p.visible = false;
+          tray.add(p);
+          glasses.push(p);
+        });
+      }
     } else {
       const hL = new THREE.Vector3(-0.33, 0.9, 0.06), hR = new THREE.Vector3(0.3, 1.12, 0.26);
       lean.add(limb(shL, hL, 0.065, shirt), limb(shR, hR, 0.065, shirt));
@@ -237,7 +245,7 @@
         (this.boostT > 0 ? C.boostSpeedMultiplier : 1) *
         (this.onSticky ? C.stickySpeed : 1);
     }
-    loadFrac() { return this.beers / C.maxBeers; }
+    loadFrac() { return this.beers / 10; }   // 1 = a classic full tray of 10; bigger stacks slosh even more
 
     // A bump sets the beers sloshing in a random-ish direction
     stagger(impact, nx, nz) {

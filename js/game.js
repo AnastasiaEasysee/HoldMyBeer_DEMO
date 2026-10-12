@@ -418,7 +418,7 @@
 
   function serveFx(c, t, n, pts) {
     const from = trayWorldPos(c);
-    const shown = Math.min(n, 10);
+    const shown = Math.min(n, 20);
     for (let i = 0; i < shown; i++) {
       const pint = HMB.makePint(false);
       G.scene.add(pint);

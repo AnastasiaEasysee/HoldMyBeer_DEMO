@@ -273,7 +273,9 @@
           const d = Math.hypot(this.goal.x - c.x, this.goal.z - c.z);
           if (c.inBarZone() && (d < 0.9 || !this.path.length)) {
             this.state = 'loading';
-            this.tripTarget = Math.min(C.maxBeers, randInt(this.p.tripMin, this.p.tripMax));
+            // Personalities are tuned for a 10-beer tray; scale up when the tray holds more
+            const scale = Math.max(1, C.maxBeers / 10);
+            this.tripTarget = Math.min(C.maxBeers, Math.round(randInt(this.p.tripMin, this.p.tripMax) * scale));
             this.loadDelay = rand(0.15, 0.5);
             this.path = [];
             return ZERO;

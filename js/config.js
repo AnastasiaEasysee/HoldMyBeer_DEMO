@@ -97,7 +97,7 @@ HMB.SETTINGS = [
     ['matchSeconds', 'Round length (s)', 30, 600, 10],
   ] },
   { group: 'Getting beers', items: [
-    ['maxBeers', 'Max beers on the tray', 1, 10, 1],
+    ['maxBeers', 'Max beers on the tray', 1, 30, 1],
     ['getBeerCooldown', 'Get Beer cooldown (s)', 0, 5, 0.1],
   ] },
   { group: 'Drinking', items: [
