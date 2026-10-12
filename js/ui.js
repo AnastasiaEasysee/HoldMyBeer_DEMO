@@ -33,7 +33,7 @@
         stickBtn.setAttribute('aria-checked', String(m === 'stick'));
         $('mode-note').textContent = m === 'tilt'
           ? 'Hold the phone how you like. That angle counts as level when the round starts.'
-          : 'Right joystick walks. Push further to go faster.';
+          : 'The joystick walks. Push further to go faster.';
       };
       tiltBtn.addEventListener('click', () => setMode('tilt'));
       stickBtn.addEventListener('click', () => setMode('stick'));
@@ -212,7 +212,9 @@
 
       // Effects
       const fx = [];
+      if (h.fallT > 0) fx.push(['dazed', 'In the cellar']);
       if (h.stunT > 0) fx.push(['dazed', 'Dazed']);
+      if (h.onSticky && h.fallT <= 0) fx.push(['sticky', 'Sticky floor']);
       if (h.boostT > 0) fx.push(['boost', `Speed ${Math.ceil(h.boostT)}s`]);
       if (h.shieldT > 0) fx.push(['shield', `Shield ${Math.ceil(h.shieldT)}s`]);
       if (h.drunkT > 0) fx.push(['dizzy', `Seeing double ${Math.ceil(h.drunkT)}s`]);
@@ -239,16 +241,12 @@
         el.aimHint.hidden = !v;
       });
 
-      // Balance level: shows where the tray is pulling you, relative to the camera
-      const f = { x: Math.sin(G.yaw), z: Math.cos(G.yaw) };
-      const r = { x: -Math.cos(G.yaw), z: Math.sin(G.yaw) };
-      const sr = h.sway.x * r.x + h.sway.z * r.z;
-      const sf = h.sway.x * f.x + h.sway.z * f.z;
-      const k = 40;
-      const bx = Math.max(-20, Math.min(20, sr * k)), by = Math.max(-20, Math.min(20, -sf * k));
+      // Balance level: shows where the tray is pulling you (screen right = +x, screen down = +z)
+      const k = 26;
+      const bx = Math.max(-20, Math.min(20, h.sway.x * k)), by = Math.max(-20, Math.min(20, h.sway.z * k));
       el.bubble.style.transform = `translate(${bx.toFixed(1)}px, ${by.toFixed(1)}px)`;
       const wob = Math.hypot(h.sway.x, h.sway.z);
-      this.set('wob', wob > 0.22 ? 2 : wob > 0.1 ? 1 : 0, (v) => {
+      this.set('wob', wob > 0.45 ? 2 : wob > 0.2 ? 1 : 0, (v) => {
         el.balance.classList.toggle('wobbly', v === 1);
         el.balance.classList.toggle('tipsy', v === 2);
       });

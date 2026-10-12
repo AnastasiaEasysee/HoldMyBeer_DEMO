@@ -44,13 +44,11 @@
 
   const Input = {
     mode: 'stick',           // 'stick' or 'tilt'
-    lookStick: null,
     moveStick: null,
     keys: Object.create(null),
     gyro: { seen: false, beta: 0, gamma: 0, nx: 0, ny: 0 },
 
     init() {
-      this.lookStick = new Stick(document.getElementById('stick-look'));
       this.moveStick = new Stick(document.getElementById('stick-move'));
       addEventListener('keydown', (e) => {
         if (e.target && e.target.tagName === 'INPUT') return;
@@ -117,7 +115,7 @@
 
     usingTilt() { return this.mode === 'tilt' && this.gyro.seen; },
 
-    // Lean relative to the camera: right (+) / left (-), forward (+) / back (-). Length <= 1.
+    // Lean in screen terms: right (+) / left (-), up the screen (+) / down (-). Length <= 1.
     getLean() {
       let right = 0, fwd = 0, dz = 0;
       if (this.usingTilt()) {
@@ -133,25 +131,15 @@
       const k = this.keys;
       if (k.KeyW || k.ArrowUp) fwd += 1;
       if (k.KeyS || k.ArrowDown) fwd -= 1;
-      if (k.KeyD) right += 1;
-      if (k.KeyA) right -= 1;
+      if (k.KeyD || k.ArrowRight) right += 1;
+      if (k.KeyA || k.ArrowLeft) right -= 1;
       let m = Math.hypot(right, fwd);
       if (m < dz) return { right: 0, forward: 0 };
       const scaled = Math.min(1, (m - dz) / (1 - dz));
       return { right: (right / m) * scaled, forward: (fwd / m) * scaled };
     },
 
-    getLook() {
-      let x = this.lookStick.x;
-      const k = this.keys;
-      if (k.ArrowLeft || k.KeyQ) x -= 1;
-      if (k.ArrowRight || k.KeyE) x += 1;
-      x = Math.max(-1, Math.min(1, x));
-      return Math.abs(x) < 0.08 ? 0 : x;
-    },
-
     releaseAll() {
-      this.lookStick.reset();
       this.moveStick.reset();
     },
   };

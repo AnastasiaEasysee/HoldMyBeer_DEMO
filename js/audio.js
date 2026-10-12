@@ -78,6 +78,11 @@
       tone(988, 0.14, 'triangle', 0.22 * v);
       tone(1319, 0.3, 'triangle', 0.22 * v, null, 0.1);
     },
+    fall(v) {              // slide-whistle down + thud
+      tone(900, 0.5, 'sine', 0.25 * v, 140);
+      tone(90, 0.25, 'sine', 0.45 * v, 45, 0.5);
+      noise(0.12, 0.25 * v, 'lowpass', 500, 1, null, 0.5);
+    },
     blocked(v) {
       tone(1600, 0.18, 'square', 0.07 * v, 2400);
       tone(2400, 0.12, 'sine', 0.1 * v, null, 0.05);

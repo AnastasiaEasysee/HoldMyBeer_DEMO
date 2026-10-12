@@ -1,4 +1,4 @@
-// The bar: a fixed map (never randomised), its obstacles, and all the 3D set dressing.
+// The bar: a fixed map (never randomised), its obstacles and hazards, and all the 3D set dressing.
 (function () {
   const C = HMB.CONFIG;
 
@@ -15,40 +15,72 @@
 
   // ---------------------------------------------------------------- map
   // Bar along the back wall (z = 0). Tables further from the bar pay more per beer.
+  // Table rows sit at z ≈ 6.5 / 12 / 18 / 24.5 / 32; the gaps between rows (z 9.25, 21.25, 28)
+  // and the centre aisle (x = 0) are walking routes for customers.
+  const L = 0.35, R = Math.PI - 0.35;   // stool angles: left/right of a table, off the walking lanes
   const tables = [
-    { x: -5.5, z: 6.0,  r: 0.85, points: 1, stools: [3.6, 1.2] },
-    { x:  2.0, z: 5.5,  r: 0.85, points: 1, stools: [5.8, 2.2] },
-    { x: -3.0, z: 11.0, r: 0.9,  points: 2, stools: [0.3, 3.9] },
-    { x:  5.5, z: 10.5, r: 0.9,  points: 2, stools: [2.6, 5.2] },
-    { x:  0.0, z: 16.5, r: 0.9,  points: 3, stools: [1.0, 4.4] },
-    { x:  5.5, z: 21.0, r: 0.95, points: 4, stools: [3.3, 0.6] },
-    { x: -6.0, z: 23.0, r: 0.95, points: 5, stools: [5.6, 2.0] },
+    { x: -8,   z: 6.5,  r: 0.85, points: 1, stools: [R, -L] },
+    { x:  4,   z: 6.5,  r: 0.85, points: 1, stools: [L + Math.PI, -0.3] },
+    { x: -3.5, z: 12,   r: 0.9,  points: 2, stools: [R, L] },
+    { x:  8.5, z: 12,   r: 0.9,  points: 2, stools: [-R, 0.2] },
+    { x: -9.5, z: 18,   r: 0.9,  points: 3, stools: [R, -L] },
+    { x:  4.5, z: 18,   r: 0.9,  points: 3, stools: [-R, L] },
+    { x: -4,   z: 24.5, r: 0.95, points: 4, stools: [R, -L] },
+    { x:  9.5, z: 24.5, r: 0.95, points: 4, stools: [-R, 0.3] },
+    { x: -9,   z: 31.5, r: 1.0,  points: 5, stools: [R, L] },
+    { x:  4.5, z: 32,   r: 1.0,  points: 5, stools: [-R, L] },
   ];
   const stools = [
-    { x: -6.5, z: 2.05 }, { x: -3.0, z: 2.05 }, { x: 3.0, z: 2.05 }, { x: 6.5, z: 2.05 },  // bar stools
+    // bar stools
+    { x: -9, z: 2.05 }, { x: -4.5, z: 2.05 }, { x: 0, z: 2.05 }, { x: 4.5, z: 2.05 }, { x: 9, z: 2.05 },
   ];
   tables.forEach((t) => t.stools.forEach((a) => {
     stools.push({ x: t.x + Math.cos(a) * (t.r + 0.42), z: t.z + Math.sin(a) * (t.r + 0.42) });
   }));
+  // Customers standing still
   const people = [
-    { x: -1.6, z: 8.3,  face: 2.2, shirt: 0x8a6d4b },
-    { x:  3.8, z: 14.2, face: 4.0, shirt: 0x5c7a6a },
-    { x: -5.4, z: 16.6, face: 0.6, shirt: 0xb5835a },
-    { x:  2.6, z: 24.3, face: 3.4, shirt: 0x6b5b8a },
-    { x: -7.8, z: 11.6, face: 1.4, shirt: 0x9a4f4f },
-    { x:  8.0, z: 16.4, face: 4.6, shirt: 0x4f6f8a },
-    { x: -2.6, z: 20.2, face: 5.5, shirt: 0x8a8a4b },
+    { x: -12,   z: 12,   face: 1.4, shirt: 0x9a4f4f },
+    { x:  7.5,  z: 15,   face: 4.0, shirt: 0x5c7a6a },
+    { x: -6.5,  z: 15.2, face: 0.6, shirt: 0xb5835a },
+    { x:  12,   z: 18.5, face: 4.6, shirt: 0x4f6f8a },
+    { x: -12.2, z: 25,   face: 1.6, shirt: 0x8a8a4b },
+    { x:  2,    z: 25,   face: 3.4, shirt: 0x6b5b8a },
+    { x: -2,    z: 34.5, face: 3.1, shirt: 0x8a6d4b },
+    { x:  10,   z: 34.5, face: 3.6, shirt: 0x7a4f6a },
+    { x: -12,   z: 4,    face: 1.2, shirt: 0x4f7a8a },
+  ];
+  // Customers walking back and forth along the lanes
+  const walkerRoutes = [
+    { shirt: 0xc0785a, route: [{ x: -11.5, z: 9.25 }, { x: 11.5, z: 9.25 }] },
+    { shirt: 0x5a8fc0, route: [{ x: 11.5, z: 21.25 }, { x: -11.5, z: 21.25 }] },
+    { shirt: 0x8fc05a, route: [{ x: -11.5, z: 28 }, { x: 11.5, z: 28 }] },
+    { shirt: 0xc05a9a, route: [{ x: 0, z: 34 }, { x: 0, z: 4.6 }] },
+  ];
+  // Sticky spills (slow you down)
+  const sticky = [
+    { x: -1.5, z: 15,    r: 1.4 },
+    { x:  8.5, z: 21.25, r: 1.3 },
+    { x: -7,   z: 28,    r: 1.5 },
+    { x:  7,   z: 34,    r: 1.2 },
+    { x: -9,   z: 9.25,  r: 1.2 },
+  ];
+  // Open cellar hatches (fall in = lose your whole tray). Square, `half` = half the side length.
+  const holes = [
+    { x:  1.5,  z: 12,   half: 0.8 },
+    { x: -6.5,  z: 18.5, half: 0.8 },
+    { x:  7,    z: 30,   half: 0.8 },
+    { x: -10.5, z: 23,   half: 0.8 },
   ];
   const spawns = [
-    { x: -1.2, z: 2.75 },  // you, right at the counter
-    { x: -4.8, z: 2.75 },
-    { x:  1.6, z: 2.75 },
-    { x:  4.8, z: 2.75 },
+    { x: -2.25, z: 2.75 },  // you, right at the counter
+    { x: -6.75, z: 2.75 },
+    { x:  2.25, z: 2.75 },
+    { x:  6.75, z: 2.75 },
   ];
   // Where AI rivals line up to order (gaps between the bar stools)
-  const barSlots = [-8, -4.75, -1.4, 1.4, 4.75, 8];
+  const barSlots = [-11, -6.75, -2.25, 2.25, 6.75, 11];
 
-  HMB.MAP = { tables, stools, people, spawns, barSlots };
+  HMB.MAP = { tables, stools, people, walkerRoutes, sticky, holes, spawns, barSlots };
 
   // Static collision circles
   HMB.obstacles = [
@@ -56,6 +88,11 @@
     ...stools.map((s) => ({ x: s.x, z: s.z, r: 0.24, kind: 'stool' })),
     ...people.map((p) => ({ x: p.x, z: p.z, r: 0.36, kind: 'person' })),
   ];
+
+  HMB.onSticky = (x, z) => sticky.some((s) => Math.hypot(x - s.x, z - s.z) < s.r);
+  // A player falls in when their centre is over the hatch opening
+  HMB.holeAt = (x, z, margin) => holes.find((h) =>
+    Math.abs(x - h.x) < h.half - (margin || 0) && Math.abs(z - h.z) < h.half - (margin || 0));
 
   // ---------------------------------------------------------------- helpers
   function canvasTex(w, h, draw, rx, ry) {
@@ -136,26 +173,84 @@
     g.fillStyle = '#7a5a3a';
     g.fillText('PER BEER', 128, 196);
     const tex = new THREE.CanvasTexture(c);
-    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-    s.scale.set(0.95, 0.95, 1);
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
+    s.scale.set(1.5, 1.5, 1);
     s.renderOrder = 5;
     return s;
   }
 
   const lambert = (color, extra) => new THREE.MeshLambertMaterial(Object.assign({ color }, extra || {}));
 
+  // ---------------------------------------------------------------- walking customers
+  class Walker {
+    constructor(scene, def, i) {
+      this.route = def.route;
+      this.idx = 1;
+      this.x = def.route[0].x;
+      this.z = def.route[0].z;
+      this.vx = 0; this.vz = 0;
+      this.r = 0.36;
+      this.waitT = 0;
+      this.blockedT = 0;
+      this.phase = i * 1.3;
+      this.fig = HMB.buildFigure({ shirt: def.shirt, pants: 0x2b2633, hair: [0x2a1a0e, 0xb08040, 0x111111, 0x6b4a2a][i % 4], pint: true });
+      scene.add(this.fig.root);
+      this.sync(0);
+    }
+    reset() {
+      this.idx = 1;
+      this.x = this.route[0].x;
+      this.z = this.route[0].z;
+      this.vx = this.vz = 0;
+      this.waitT = 0;
+    }
+    update(dt, others) {
+      const tgt = this.route[this.idx];
+      let dx = tgt.x - this.x, dz = tgt.z - this.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.1) {
+        this.idx = (this.idx + 1) % this.route.length;
+        this.waitT = 0.8 + Math.random() * 1.2;   // pause at the end of the route
+      }
+      if (this.waitT > 0) { this.waitT -= dt; this.vx = this.vz = 0; return; }
+      dx /= d || 1; dz /= d || 1;
+      // Politely stop for someone right in front, but not forever
+      let blocked = false;
+      for (const o of others) {
+        if (o === this) continue;
+        const ox = o.x - this.x, oz = o.z - this.z, od = Math.hypot(ox, oz);
+        if (od < 1.1 && (ox * dx + oz * dz) / (od || 1) > 0.6) { blocked = true; break; }
+      }
+      this.blockedT = blocked ? this.blockedT + dt : 0;
+      const go = !blocked || this.blockedT > 1.5;
+      const sp = go ? C.walkerSpeed : 0;
+      this.vx = dx * sp; this.vz = dz * sp;
+      this.x += this.vx * dt;
+      this.z += this.vz * dt;
+    }
+    sync(t) {
+      const f = this.fig;
+      const sp = Math.hypot(this.vx, this.vz);
+      if (sp > 0.1) f.body.rotation.y = Math.atan2(this.vx, this.vz);
+      const swing = Math.sin(t * 7 + this.phase) * Math.min(1, sp) * 0.5;
+      f.legL.rotation.x = swing;
+      f.legR.rotation.x = -swing;
+      f.root.position.set(this.x, 0, this.z);
+    }
+  }
+
   // ---------------------------------------------------------------- build
   HMB.buildWorld = function (scene) {
-    const R = C.room;
-    const W = R.maxX - R.minX, D = R.maxZ - R.minZ, H = 4.2;
+    const RM = C.room;
+    const W = RM.maxX - RM.minX, D = RM.maxZ - RM.minZ, H = 6;
     const rnd = rng(42);
 
     // Lights: warm and low, like a pub after dark
-    scene.add(new THREE.HemisphereLight(0xffe2b8, 0x3a2416, 0.95));
+    scene.add(new THREE.HemisphereLight(0xffe2b8, 0x3a2416, 1.0));
     const sun = new THREE.DirectionalLight(0xffd59a, 0.55);
-    sun.position.set(-4, 10, 18);
+    sun.position.set(-6, 14, 30);
     scene.add(sun);
-    const barLight = new THREE.PointLight(0xffb45a, 0.9, 14, 2);
+    const barLight = new THREE.PointLight(0xffb45a, 0.9, 16, 2);
     barLight.position.set(0, 3.4, 2.4);
     scene.add(barLight);
 
@@ -216,17 +311,15 @@
     const wallShort = lambert(0xffffff, { map: wallTexShort, side: THREE.BackSide });
     const ceiling = lambert(0x1d120c, { side: THREE.BackSide });
     const floor = lambert(0xffffff, { map: floorTex, side: THREE.BackSide });
+    // Seen from above, the walls nearest the camera and the ceiling are back-face culled: a dollhouse view.
     const room = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), [wallLong, wallLong, ceiling, floor, wallShort, wallShort]);
-    room.position.set((R.minX + R.maxX) / 2, H / 2, (R.minZ + R.maxZ) / 2);
+    room.position.set((RM.minX + RM.maxX) / 2, H / 2, (RM.minZ + RM.maxZ) / 2);
     scene.add(room);
-
-    // Ceiling beams
-    const beamMat = lambert(0x24150c);
-    for (let z = 3; z < D; z += 4.5) {
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(W, 0.25, 0.3), beamMat);
-      beam.position.set(0, H - 0.12, z);
-      scene.add(beam);
-    }
+    // Dark ground around the building, so the camera never looks into a void
+    const outside = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshBasicMaterial({ color: 0x0e0906 }));
+    outside.rotation.x = -Math.PI / 2;
+    outside.position.set(0, -0.05, D / 2);
+    scene.add(outside);
 
     // ---- the bar counter
     const counterDepth = 1.0, counterH = 1.08;
@@ -237,7 +330,7 @@
         g.fillRect(x + 2, 6, 28, h - 12);
       }
       g.fillStyle = '#2e180b'; g.fillRect(0, h - 10, w, 10);
-    }, 12, 1);
+    }, 16, 1);
     const counter = new THREE.Mesh(new THREE.BoxGeometry(W - 0.8, counterH, counterDepth), lambert(0xffffff, { map: frontTex }));
     counter.position.set(0, counterH / 2, C.barFrontZ - counterDepth / 2);
     scene.add(counter);
@@ -252,7 +345,7 @@
     // Beer taps
     const chrome = lambert(0xd8d2c4, { emissive: 0x222018 });
     const handleCols = [0xf4a72c, 0x2b1b12, 0xe5533d, 0x6fcf7b];
-    [-5.2, -1.8, 1.8, 5.2].forEach((tx, i) => {
+    [-8.5, -4.2, 0, 4.2, 8.5].forEach((tx, i) => {
       const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.12, 0.18), chrome);
       base.position.set(tx, counterH + 0.5, C.barFrontZ - 0.45);
       scene.add(base);
@@ -277,15 +370,16 @@
       s.position.set(0, y, 0.2);
       scene.add(s);
     });
-    const bottleCount = 64;
+    const bottleCount = 96;
     const bottleGeo = new THREE.CylinderGeometry(0.045, 0.055, 0.32, 8);
     bottleGeo.translate(0, 0.16, 0);
     const bottles = new THREE.InstancedMesh(bottleGeo, lambert(0xffffff, { emissive: 0x111111 }), bottleCount);
     const bottleCols = [0x2f6b3a, 0x6b3a1a, 0xc98a2b, 0x8fb9c6, 0x7a1f2b, 0xd9cfa8, 0x24452e];
     const m4 = new THREE.Matrix4(), col = new THREE.Color();
+    const shelfW = W - 3.2;
     for (let i = 0; i < bottleCount; i++) {
       const row = i % 2;
-      const x = -7.4 + (Math.floor(i / 2) / (bottleCount / 2)) * 14.8 + rnd() * 0.12;
+      const x = -shelfW / 2 + (Math.floor(i / 2) / (bottleCount / 2)) * shelfW + rnd() * 0.12;
       const sc = 0.8 + rnd() * 0.5;
       m4.makeScale(1, sc, 1).setPosition(x, shelfYs[row] + 0.025, 0.16 + rnd() * 0.08);
       bottles.setMatrixAt(i, m4);
@@ -305,8 +399,8 @@
       g.fillText('HOLD MY BEER', w / 2, h / 2 + 6);
     });
     neonTex.wrapS = neonTex.wrapT = THREE.ClampToEdgeWrapping;
-    const neon = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 1.6), new THREE.MeshBasicMaterial({ map: neonTex, transparent: true, depthWrite: false }));
-    neon.position.set(0, 3.4, 0.05);
+    const neon = new THREE.Mesh(new THREE.PlaneGeometry(8, 2), new THREE.MeshBasicMaterial({ map: neonTex, transparent: true, depthWrite: false }));
+    neon.position.set(0, 3.3, 0.05);
     scene.add(neon);
 
     // Ordering zone glow on the floor in front of the bar
@@ -329,20 +423,101 @@
     bartender.root.position.set(0, 0, 0.55);
     scene.add(bartender.root);
 
-    // ---- tables, lamps, light pools, serve rings
+    // ---- sticky spills
+    const stickyTex = canvasTex(256, 256, (g, w, h) => {
+      const r = rng(5);
+      g.clearRect(0, 0, w, h);
+      // irregular blob made of overlapping circles
+      g.fillStyle = 'rgba(122,72,14,0.88)';
+      for (let i = 0; i < 14; i++) {
+        const a = r() * Math.PI * 2, d = r() * 50;
+        g.beginPath();
+        g.arc(128 + Math.cos(a) * d, 128 + Math.sin(a) * d, 45 + r() * 30, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.fillStyle = 'rgba(176,110,24,0.7)';
+      for (let i = 0; i < 6; i++) {
+        g.beginPath();
+        g.arc(110 + r() * 40, 110 + r() * 40, 20 + r() * 26, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.fillStyle = 'rgba(255,230,170,0.55)';   // glossy highlights
+      for (let i = 0; i < 9; i++) {
+        g.beginPath();
+        g.ellipse(80 + r() * 100, 80 + r() * 100, 3 + r() * 8, 2 + r() * 4, r() * 3, 0, Math.PI * 2);
+        g.fill();
+      }
+    });
+    stickyTex.wrapS = stickyTex.wrapT = THREE.ClampToEdgeWrapping;
+    const stickyMat = new THREE.MeshBasicMaterial({ map: stickyTex, transparent: true, depthWrite: false });
+    sticky.forEach((s, i) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(s.r * 2.3, s.r * 2.3), stickyMat);
+      m.rotation.x = -Math.PI / 2;
+      m.rotation.z = i * 1.3;
+      m.position.set(s.x, 0.013, s.z);
+      scene.add(m);
+    });
+
+    // ---- open cellar hatches
+    const pitTex = canvasTex(128, 128, (g, w, h) => {
+      const grd = g.createRadialGradient(w / 2, h / 2, 4, w / 2, h / 2, w * 0.7);
+      grd.addColorStop(0, '#000000');
+      grd.addColorStop(1, '#1c120b');
+      g.fillStyle = grd; g.fillRect(0, 0, w, h);
+      g.fillStyle = 'rgba(120,80,40,0.35)';   // ladder rungs disappearing into the dark
+      for (let y = 18; y < h - 30; y += 22) g.fillRect(44, y, 40, 5);
+    });
+    pitTex.wrapS = pitTex.wrapT = THREE.ClampToEdgeWrapping;
+    const stripeTex = canvasTex(64, 16, (g, w, h) => {
+      g.fillStyle = '#f4c21c'; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#1a1410';
+      for (let x = -16; x < w; x += 16) {
+        g.beginPath(); g.moveTo(x, h); g.lineTo(x + 8, 0); g.lineTo(x + 16, 0); g.lineTo(x + 8, h); g.fill();
+      }
+    }, 4, 1);
+    const pitMat = new THREE.MeshBasicMaterial({ map: pitTex });
+    const stripeMat = lambert(0xffffff, { map: stripeTex });
+    const doorMat = lambert(0x5a3218);
+    holes.forEach((hl, i) => {
+      const g = new THREE.Group();
+      g.position.set(hl.x, 0, hl.z);
+      const s = hl.half * 2;
+      const pit = new THREE.Mesh(new THREE.PlaneGeometry(s, s), pitMat);
+      pit.rotation.x = -Math.PI / 2;
+      pit.position.y = 0.014;
+      g.add(pit);
+      // hazard-striped frame
+      const t = 0.12;
+      [[0, -hl.half, s + t, t], [0, hl.half, s + t, t], [-hl.half, 0, t, s], [hl.half, 0, t, s]].forEach(([fx, fz, w, d]) => {
+        const f = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, d), stripeMat);
+        f.position.set(fx, 0.025, fz);
+        g.add(f);
+      });
+      // trapdoor flipped open
+      const hinge = new THREE.Group();
+      hinge.position.set(0, 0.05, -hl.half - t / 2);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(s, 0.06, s), doorMat);
+      door.position.set(0, 0, -s / 2);
+      hinge.add(door);
+      hinge.rotation.x = 1.2;
+      g.rotation.y = (i % 2) * Math.PI;
+      g.add(hinge);
+      scene.add(g);
+    });
+
+    // ---- tables, light pools, serve rings
     const tableWood = lambert(0x6b3b1c);
     const tableEdge = lambert(0x3a1f0e);
     const ironMat = lambert(0x1a1410);
     const poolTex = canvasTex(128, 128, (g, w, h) => {
       const grd = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-      grd.addColorStop(0, 'rgba(255,200,120,0.55)');
+      grd.addColorStop(0, 'rgba(255,200,120,0.5)');
       grd.addColorStop(1, 'rgba(255,200,120,0)');
       g.fillStyle = grd; g.fillRect(0, 0, w, h);
     });
     poolTex.wrapS = poolTex.wrapT = THREE.ClampToEdgeWrapping;
     const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
-    const shadeMat = lambert(0x2f4a3a, { side: THREE.DoubleSide });
-    const bulbMat = new THREE.MeshBasicMaterial({ color: 0xffe6b0 });
+    const flameMat = new THREE.MeshBasicMaterial({ color: 0xffe6b0 });
 
     tables.forEach((t) => {
       const g = new THREE.Group();
@@ -357,18 +532,9 @@
       foot.position.y = 0.025;
       const candle = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.12, 8), lambert(0xf3e6c8));
       candle.position.set(0.25, 1.07, -0.1);
-      const flame = new THREE.Mesh(new THREE.SphereGeometry(0.025, 6, 6), bulbMat);
+      const flame = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), flameMat);
       flame.position.set(0.25, 1.16, -0.1);
       g.add(topM, edge, leg, foot, candle, flame);
-
-      // Lamp
-      const cord = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, H - 3.2, 4), ironMat);
-      cord.position.y = (H + 3.2) / 2;
-      const shade = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.26, 16, 1, true), shadeMat);
-      shade.position.y = 3.2;
-      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), bulbMat);
-      bulb.position.y = 3.08;
-      g.add(cord, shade, bulb);
 
       const pool = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 4.2), poolMat);
       pool.rotation.x = -Math.PI / 2; pool.position.y = 0.01;
@@ -376,13 +542,13 @@
 
       // Serve ring: shows where you can serve from, lights up when you can
       const reach = t.r + C.playerRadius + C.serveReach;
-      const ring = new THREE.Mesh(new THREE.RingGeometry(reach - 0.07, reach, 48),
+      const ring = new THREE.Mesh(new THREE.RingGeometry(reach - 0.08, reach, 48),
         new THREE.MeshBasicMaterial({ color: 0xf4a72c, transparent: true, opacity: 0.18, depthWrite: false }));
       ring.rotation.x = -Math.PI / 2; ring.position.y = 0.015;
       g.add(ring);
 
       const badge = tableBadge(t.points);
-      badge.position.y = 2.25;
+      badge.position.y = 2.4;
       g.add(badge);
 
       scene.add(g);
@@ -405,7 +571,7 @@
       scene.add(g);
     });
 
-    // Patrons (static obstacles that idle in place)
+    // Standing customers (static obstacles that idle in place)
     const patronFigs = people.map((p, i) => {
       const f = HMB.buildFigure({ shirt: p.shirt, pants: 0x2b2633, hair: [0x2a1a0e, 0x6b4a2a, 0x111111, 0xb08040][i % 4], pint: true });
       f.root.position.set(p.x, 0, p.z);
@@ -416,10 +582,13 @@
       return f;
     });
 
+    // Walking customers
+    const walkers = walkerRoutes.map((def, i) => new Walker(scene, def, i));
+
     // Posters on the side walls
     const posterCols = [0xe5533d, 0xf4a72c, 0x4f8de0, 0x6fcf7b];
-    [5, 12, 19].forEach((z, i) => {
-      [R.minX + 0.02, R.maxX - 0.02].forEach((x, j) => {
+    [6, 14, 22, 30].forEach((z, i) => {
+      [RM.minX + 0.02, RM.maxX - 0.02].forEach((x, j) => {
         const p = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 1.5), lambert(posterCols[(i + j) % 4]));
         p.position.set(x, 2.6, z + j);
         p.rotation.y = j ? -Math.PI / 2 : Math.PI / 2;
@@ -435,6 +604,12 @@
       tables,
       barZone,
       bartender,
+      walkers,
+      resetWalkers() { walkers.forEach((w) => w.reset()); },
+      updateWalkers(dt, chars) {
+        const others = [...chars, ...walkers];
+        walkers.forEach((w) => w.update(dt, others));
+      },
       update(dt, t, chars, human) {
         // Bartender drifts to whoever is closest to the counter
         let tx = 0, best = 1e9;
@@ -442,7 +617,7 @@
           const d = c.z - C.barFrontZ;
           if (d < C.barReach + 1 && d < best) { best = d; tx = c.x; }
         });
-        tx = Math.max(-7.5, Math.min(7.5, tx));
+        tx = Math.max(-11, Math.min(11, tx));
         const bx = bartender.root.position.x;
         bartender.root.position.x += (tx - bx) * Math.min(1, dt * 2.5);
         bartender.body.rotation.y = Math.sin(t * 0.7) * 0.2;
@@ -450,12 +625,13 @@
         bartender.legR.rotation.x = -bartender.legL.rotation.x;
 
         tables.forEach((tb, i) => {
-          tb.badge.position.y = 2.25 + Math.sin(t * 2 + i) * 0.06;
+          tb.badge.position.y = 2.4 + Math.sin(t * 2 + i) * 0.08;
         });
         patronFigs.forEach((f) => {
           f.lean.rotation.z = Math.sin(t * 0.9 + f.phase) * 0.05;
           f.body.rotation.y = f.baseFace + Math.sin(t * 0.3 + f.phase) * 0.35;
         });
+        walkers.forEach((w) => w.sync(t));
 
         // Highlight what you can do right now
         if (human) {

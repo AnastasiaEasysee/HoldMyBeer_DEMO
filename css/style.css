@@ -188,6 +188,7 @@ button { font: inherit; color: inherit; }
 .chip.shield { background: var(--shield); }
 .chip.dizzy { background: #f2a0c6; }
 .chip.dazed { background: var(--cherry); color: var(--foam); }
+.chip.sticky { background: #b0701c; color: var(--foam); }
 
 #toasts {
   position: absolute;
@@ -231,7 +232,6 @@ button { font: inherit; color: inherit; }
   border: 2px solid rgba(255, 243, 214, 0.38);
   touch-action: none;
 }
-#stick-look { left: 16px; }
 #stick-move { right: 16px; }
 .stick .knob {
   position: absolute;
@@ -328,8 +328,9 @@ button { font: inherit; color: inherit; }
   stroke-dashoffset: 289;
 }
 
+/* Tilt: buttons bottom-right. Joystick: stick bottom-right, buttons bottom-left for the other thumb. */
 #btn-action { right: 20px; bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
-#hud.mode-stick #btn-action { right: 30px; bottom: calc(172px + env(safe-area-inset-bottom, 0px)); }
+#hud.mode-stick #btn-action { right: auto; left: 24px; bottom: calc(36px + env(safe-area-inset-bottom, 0px)); }
 
 .coaster.small {
   width: 74px;
@@ -341,7 +342,7 @@ button { font: inherit; color: inherit; }
 .coaster.small .sub { font-size: 9px; }
 .coaster.small.aiming { box-shadow: 0 0 0 4px var(--cherry), 0 0 22px 6px rgba(229, 83, 61, 0.55); }
 #btn-throw { right: 32px; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
-#hud.mode-stick #btn-throw { right: 138px; bottom: calc(184px + env(safe-area-inset-bottom, 0px)); }
+#hud.mode-stick #btn-throw { right: auto; left: 36px; bottom: calc(154px + env(safe-area-inset-bottom, 0px)); }
 .badge {
   position: absolute;
   top: -4px;
@@ -361,7 +362,7 @@ button { font: inherit; color: inherit; }
   position: absolute;
   left: 16px;
   right: 16px;
-  bottom: calc(272px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(244px + env(safe-area-inset-bottom, 0px));
   text-align: center;
   font-weight: 900;
   font-size: 13px;

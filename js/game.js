@@ -1,10 +1,11 @@
-// Main loop: rules, collisions, effects, camera and rendering for the phone view.
+// Main loop: rules, collisions, hazards, effects, camera and rendering for the phone view.
 (function () {
   const C = HMB.CONFIG;
   const A = HMB.Audio;
   const I = HMB.Input;
   const UI = HMB.UI;
   const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   const G = {
     state: 'boot',        // intro -> countdown -> playing -> results
@@ -13,7 +14,6 @@
     chars: [],
     bots: [],
     human: null,
-    yaw: 0,
     fx: [],
     aim: null,
     shake: 0,
@@ -32,10 +32,10 @@
 
     G.scene = new THREE.Scene();
     G.scene.background = new THREE.Color(0x140d09);
-    G.scene.fog = new THREE.Fog(0x140d09, 20, 42);
-    G.camera = new THREE.PerspectiveCamera(70, 1, 0.1, 80);
-    G.camPos = new THREE.Vector3(0, 9, 26);
-    G.camLook = new THREE.Vector3(0, 0, 13);
+    G.scene.fog = new THREE.Fog(0x140d09, 30, 60);
+    G.camera = new THREE.PerspectiveCamera(60, 1, 0.5, 120);
+    G.camPos = new THREE.Vector3(0, 22, 33);
+    G.camLook = new THREE.Vector3(0, 0, 17);
 
     G.world = HMB.buildWorld(G.scene);
     G.nav = new HMB.NavGrid();
@@ -49,6 +49,17 @@
       G.bots.push(new HMB.BotBrain(G, c, b));
     });
 
+    // Throw fan: shows which way you're facing and how far a glass reaches
+    const cone = C.throwAimConeDeg * Math.PI / 180;
+    const fanGeo = new THREE.CircleGeometry(C.throwRange, 32, -cone, cone * 2);
+    fanGeo.rotateX(-Math.PI / 2);
+    G.fanMat = new THREE.MeshBasicMaterial({ color: 0xf4a72c, transparent: true, opacity: 0.12, depthWrite: false });
+    G.fan = new THREE.Mesh(fanGeo, G.fanMat);
+    G.fan.position.y = 0.02;
+    G.fan.renderOrder = 2;
+    G.fan.visible = false;
+    G.scene.add(G.fan);
+
     setupPost();
     I.init();
     UI.init(G);
@@ -60,6 +71,9 @@
     G.last = performance.now();
     requestAnimationFrame(loop);
   }
+
+  // Everyone who moves: players and walking customers
+  G.movers = function () { return G.chars.concat(G.world.walkers); };
 
   // Double-vision post effect (only rendered while you are tipsy)
   function setupPost() {
@@ -94,9 +108,9 @@
     const aspect = w / h;
     G.camera.aspect = aspect;
     // Keep a usable horizontal view on a tall portrait screen
-    const hfov = 62 * Math.PI / 180;
+    const hfov = 64 * Math.PI / 180;
     const vfov = 2 * Math.atan(Math.tan(hfov / 2) / aspect) * 180 / Math.PI;
-    G.camera.fov = Math.max(58, Math.min(84, vfov));
+    G.camera.fov = clamp(vfov, 50, 84);
     G.camera.updateProjectionMatrix();
     const v = G.renderer.getDrawingBufferSize(new THREE.Vector2());
     G.rt.setSize(v.x, v.y);
@@ -124,10 +138,10 @@
     const sp = HMB.MAP.spawns;
     G.chars.forEach((c, i) => c.reset(sp[i].x, sp[i].z));
     G.bots.forEach((b) => b.reset());
+    G.world.resetWalkers();
     G.fx.forEach((f) => f.dispose && f.dispose());
     G.fx = [];
     G.aim = null;
-    G.yaw = 0;
     G.remaining = C.matchSeconds;
     G.drunkAmt = 0;
     G.shake = 0;
@@ -157,7 +171,7 @@
     if (G.state !== 'playing') return;
     if (c.isHuman) { A.play(name, 1); return; }
     const d = Math.hypot(c.x - G.human.x, c.z - G.human.z);
-    const v = Math.max(0, 0.7 - d / 18);
+    const v = Math.max(0, 0.7 - d / 20);
     if (v > 0.05) A.play(name, v);
   }
 
@@ -172,7 +186,7 @@
   };
 
   G.tryGetBeer = function (c) {
-    if (c.stunT > 0 || !c.inBarZone() || c.getCd > 0 || c.beers >= C.maxBeers) return false;
+    if (c.stunT > 0 || c.fallT > 0 || !c.inBarZone() || c.getCd > 0 || c.beers >= C.maxBeers) return false;
     c.beers++;
     c.getCd = C.getBeerCooldown;
     sfx(c, 'getBeer');
@@ -182,7 +196,7 @@
 
   G.tryServe = function (c, table) {
     const t = table || G.servableTable(c);
-    if (!t || c.beers <= 0 || c.stunT > 0) return false;
+    if (!t || c.beers <= 0 || c.stunT > 0 || c.fallT > 0) return false;
     const pts = c.beers * t.points;
     c.score += pts;
     serveFx(c, t, c.beers, pts);
@@ -193,7 +207,7 @@
   };
 
   G.tryDrink = function (c) {
-    if (!c.canDrink()) return false;
+    if (!c.canDrink() || c.fallT > 0) return false;
     c.beers--;
     c.drinkCd = C.drinkCooldown;
     c.drunkT = C.drunkSeconds;
@@ -206,7 +220,7 @@
   };
 
   G.throwGlass = function (c, target) {
-    if (c.glasses <= 0 || c.stunT > 0 || !target) return false;
+    if (c.glasses <= 0 || c.stunT > 0 || c.fallT > 0 || !target || target.fallT > 0) return false;
     if (Math.hypot(target.x - c.x, target.z - c.z) > C.throwRange) return false;
     c.glasses--;
     projectileFx(c, target);
@@ -216,6 +230,10 @@
 
   function onGlassHit(from, target, mesh) {
     const live = G.state === 'playing';
+    if (target.fallT > 0) {
+      shatterFx(mesh.position.x, 0.06, mesh.position.z, false);
+      return;
+    }
     if (target.shieldT > 0) {
       sfx(target, 'blocked');
       if (live && target.isHuman) UI.toast(`Your shield blocked ${from.name}'s glass`, 'good');
@@ -232,21 +250,28 @@
     target.setShield(C.hitShieldSeconds, 'hit');
     shatterFx(mesh.position.x, mesh.position.y, mesh.position.z, false);
     sfx(target, 'loseBeers');
-    const s = lost === 1 ? '' : 's';
     if (!live) return;
+    const s = lost === 1 ? '' : 's';
     if (target.isHuman) {
       UI.hitFlash();
       G.shake = 0.45;
       UI.toast(`${from.name} hit you! −${lost} beer${s}`, 'bad');
-      if (navigator.vibrate) { try { navigator.vibrate(120); } catch (_) { /* ignore */ } }
+      vibrate(120);
     } else if (from.isHuman) {
       UI.toast(`Hit ${target.name}! They dropped ${lost} beer${s}`, 'good');
+    }
+  }
+
+  function vibrate(ms) {
+    if (navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) {
+      try { navigator.vibrate(ms); } catch (_) { /* ignore */ }
     }
   }
 
   // What the big button does right now
   G.currentAction = function () {
     const h = G.human;
+    if (h.fallT > 0) return { kind: 'none', label: 'Climbing', sub: 'out of the cellar', enabled: false };
     if (h.stunT > 0) return { kind: 'none', label: 'Dazed', sub: '', enabled: false };
     if (h.inBarZone()) {
       if (h.beers >= C.maxBeers) return { kind: 'none', label: 'Tray full', sub: `${h.beers}/${C.maxBeers}`, enabled: false };
@@ -272,9 +297,10 @@
     if (!ok) A.play('deny');
   };
 
-  // ------------------------------------------------------------ throwing (you)
+  // ------------------------------------------------------------ throwing (you): face your target
   G.startAim = function () {
-    if (G.state !== 'playing' || G.human.glasses <= 0 || G.human.stunT > 0) return;
+    const h = G.human;
+    if (G.state !== 'playing' || h.glasses <= 0 || h.stunT > 0 || h.fallT > 0) return;
     G.aim = { target: null };
   };
 
@@ -287,25 +313,42 @@
     if (!G.aim) return;
     const t = G.aim.target;
     if (t) G.throwGlass(G.human, t);
-    else { UI.toast(`No rival in sight within ${C.throwRange} m`, 'warn'); A.play('deny'); }
+    else { UI.toast(`Turn towards a rival within ${C.throwRange} m`, 'warn'); A.play('deny'); }
     G.cancelAim();
   };
 
-  function updateAim() {
+  // Target = the rival in range closest to the direction your character faces
+  function pickTarget() {
     const h = G.human;
-    if (!G.aim) return;
-    if (h.glasses <= 0 || h.stunT > 0) { G.cancelAim(); return; }
-    const fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
+    const fx = Math.sin(h.facing), fz = Math.cos(h.facing);
     const cone = Math.cos(C.throwAimConeDeg * Math.PI / 180);
     let best = null, bd = -1;
     for (const c of G.chars) {
-      if (c === h) continue;
+      if (c === h || c.fallT > 0) continue;
       const dx = c.x - h.x, dz = c.z - h.z, d = Math.hypot(dx, dz);
       if (d > C.throwRange || d < 0.01) continue;
       const dot = (dx * fx + dz * fz) / d;
       if (dot > cone && dot > bd) { bd = dot; best = c; }
     }
+    return best;
+  }
+
+  function updateAim() {
+    const h = G.human;
+    const live = G.state === 'playing' && h.fallT <= 0;
+    // The fan shows faintly whenever you hold a glass, brightly while aiming
+    G.fan.visible = live && h.glasses > 0;
+    if (G.fan.visible) {
+      G.fan.position.x = h.x;
+      G.fan.position.z = h.z;
+      G.fan.rotation.y = h.facing - Math.PI / 2;
+    }
+    if (!G.aim) { G.fanMat.opacity = 0.1; G.fanMat.color.setHex(0xf4a72c); return; }
+    if (h.glasses <= 0 || h.stunT > 0 || h.fallT > 0) { G.cancelAim(); return; }
+    const best = pickTarget();
     G.aim.target = best;
+    G.fanMat.opacity = 0.22 + Math.sin(G.time * 8) * 0.05;
+    G.fanMat.color.setHex(best ? 0xe5533d : 0xf4a72c);
     G.chars.forEach((c) => {
       c.ring.visible = c === best;
       if (c === best) {
@@ -349,15 +392,18 @@
         dispose() { removeMesh(pint); },
       });
     }
-    // Floating points
-    const label = HMB.textSprite(`+${pts}`, { height: 0.55, size: 72, color: '#f4a72c', stroke: '#241409', strokeWidth: 12, pad: 20, depthTest: false, renderOrder: 40 });
-    label.position.set(t.x, 2.0, t.z);
+    floatText(`+${pts}`, t.x, t.z, '#f4a72c');
+  }
+
+  function floatText(text, x, z, color) {
+    const label = HMB.textSprite(text, { height: 0.9, size: 72, color, stroke: '#241409', strokeWidth: 12, pad: 20, depthTest: false, renderOrder: 40 });
+    label.position.set(x, 2.4, z);
     G.scene.add(label);
     let lt = 0;
     addFx({
       update(dt) {
         lt += dt;
-        label.position.y = 2.0 + lt * 1.1;
+        label.position.y = 2.4 + lt * 1.4;
         label.material.opacity = Math.max(0, 1 - Math.max(0, lt - 0.7) * 1.6);
         return lt < 1.35;
       },
@@ -436,6 +482,7 @@
     const glass = HMB.makePint(true);
     const start = new THREE.Vector3(c.x, 1.55, c.z);
     glass.position.copy(start);
+    glass.scale.setScalar(1.6);   // a bit bigger so it reads from above
     G.scene.add(glass);
     const dist = Math.hypot(target.x - c.x, target.z - c.z);
     const dur = 0.18 + dist / 14;
@@ -447,7 +494,7 @@
         // Homes in on where the target is now
         glass.position.set(
           start.x + (target.x - start.x) * k,
-          start.y + (1.35 - start.y) * k + Math.sin(k * Math.PI) * 0.7,
+          start.y + (1.35 - start.y) * k + Math.sin(k * Math.PI) * 0.9,
           start.z + (target.z - start.z) * k);
         glass.rotation.x += dt * 14;
         glass.rotation.z += dt * 9;
@@ -468,21 +515,39 @@
     }
   }
 
-  // ------------------------------------------------------------ physics
-  function bump(c, impact) {
-    if (impact < 0.9) return;
+  // ------------------------------------------------------------ physics and hazards
+  function bump(c, impact, nx, nz) {
+    if (impact < 0.7) return;
     c.knockT = C.knockSeconds;
+    c.stagger(impact, nx, nz);
     if (c.bumpCd <= 0) {
       c.bumpCd = 0.3;
       sfx(c, 'bounce');
-      if (c.isHuman && navigator.vibrate) { try { navigator.vibrate(30); } catch (_) { /* ignore */ } }
+      if (c.isHuman) {
+        if (impact > 2) G.shake = Math.max(G.shake, 0.18);
+        vibrate(40);
+      }
     }
   }
 
+  // Bounce c off something along normal n (pointing from the thing to c).
+  // ovx/ovz: the other thing's velocity (0 for furniture).
+  function bounceOff(c, nx, nz, ovx, ovz) {
+    const vn = (c.vx - ovx) * nx + (c.vz - ovz) * nz;
+    if (vn >= 0) return;
+    const push = C.bumpImpulse * Math.min(1, -vn / 2);
+    c.vx += (-(1 + C.bounce) * vn + push) * nx;
+    c.vz += (-(1 + C.bounce) * vn + push) * nz;
+    bump(c, -vn, nx, nz);
+  }
+
   function collide() {
-    const R = C.room;
+    const RM = C.room;
+    const walkers = G.world.walkers;
     for (const c of G.chars) {
+      if (c.fallT > 0) continue;
       const r = c.radius;
+      // furniture and standing customers
       for (const o of HMB.obstacles) {
         const dx = c.x - o.x, dz = c.z - o.z;
         const d = Math.hypot(dx, dz), min = r + o.r;
@@ -490,26 +555,31 @@
           const nx = dx / d, nz = dz / d;
           c.x = o.x + nx * min;
           c.z = o.z + nz * min;
-          const vn = c.vx * nx + c.vz * nz;
-          if (vn < 0) {
-            c.vx -= (1 + C.bounce) * vn * nx;
-            c.vz -= (1 + C.bounce) * vn * nz;
-            c.vx += nx * C.bumpImpulse * Math.min(1, -vn / 3);
-            c.vz += nz * C.bumpImpulse * Math.min(1, -vn / 3);
-            bump(c, -vn);
-          }
+          bounceOff(c, nx, nz, 0, 0);
         }
       }
-      // Walls and the bar counter
-      if (c.x < R.minX + r) { c.x = R.minX + r; if (c.vx < 0) { bump(c, -c.vx); c.vx = -c.vx * C.bounce; } }
-      if (c.x > R.maxX - r) { c.x = R.maxX - r; if (c.vx > 0) { bump(c, c.vx); c.vx = -c.vx * C.bounce; } }
-      if (c.z < C.barFrontZ + r) { c.z = C.barFrontZ + r; if (c.vz < 0) { bump(c, -c.vz); c.vz = -c.vz * C.bounce; } }
-      if (c.z > R.maxZ - r) { c.z = R.maxZ - r; if (c.vz > 0) { bump(c, c.vz); c.vz = -c.vz * C.bounce; } }
+      // walking customers don't budge, they shove you aside
+      for (const w of walkers) {
+        const dx = c.x - w.x, dz = c.z - w.z;
+        const d = Math.hypot(dx, dz), min = r + w.r;
+        if (d < min && d > 1e-4) {
+          const nx = dx / d, nz = dz / d;
+          c.x = w.x + nx * min;
+          c.z = w.z + nz * min;
+          bounceOff(c, nx, nz, w.vx, w.vz);
+        }
+      }
+      // walls and the bar counter
+      if (c.x < RM.minX + r) { c.x = RM.minX + r; if (c.vx < 0) bounceOff(c, 1, 0, 0, 0); }
+      if (c.x > RM.maxX - r) { c.x = RM.maxX - r; if (c.vx > 0) bounceOff(c, -1, 0, 0, 0); }
+      if (c.z < C.barFrontZ + r) { c.z = C.barFrontZ + r; if (c.vz < 0) bounceOff(c, 0, 1, 0, 0); }
+      if (c.z > RM.maxZ - r) { c.z = RM.maxZ - r; if (c.vz > 0) bounceOff(c, 0, -1, 0, 0); }
     }
-    // Players bounce off each other
+    // players bounce off each other
     for (let i = 0; i < G.chars.length; i++) {
       for (let j = i + 1; j < G.chars.length; j++) {
         const a = G.chars[i], b = G.chars[j];
+        if (a.fallT > 0 || b.fallT > 0) continue;
         const dx = a.x - b.x, dz = a.z - b.z;
         const d = Math.hypot(dx, dz), min = a.radius + b.radius;
         if (d < min && d > 1e-4) {
@@ -518,28 +588,52 @@
           b.x -= nx * push; b.z -= nz * push;
           const rv = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
           if (rv < 0) {
-            const j2 = (-(1 + C.bounce) * rv) / 2 + C.bumpImpulse * 0.3;
+            const j2 = (-(1 + C.bounce) * rv) / 2 + C.bumpImpulse * 0.5;
             a.vx += j2 * nx; a.vz += j2 * nz;
             b.vx -= j2 * nx; b.vz -= j2 * nz;
-            bump(a, -rv);
-            bump(b, -rv);
+            bump(a, -rv, nx, nz);
+            bump(b, -rv, -nx, -nz);
           }
         }
       }
     }
+    // open cellar hatches
+    for (const c of G.chars) {
+      if (c.fallT > 0) continue;
+      const hole = HMB.holeAt(c.x, c.z, 0.12);
+      if (hole) fallIn(c, hole);
+    }
   }
 
-  // ------------------------------------------------------------ camera
+  function fallIn(c, hole) {
+    const lost = c.beers;
+    if (lost > 0) shatterFx(hole.x, 0.06, hole.z, false);
+    c.beers = 0;
+    c.fall(hole);
+    sfx(c, 'fall');
+    if (lost > 0) sfx(c, 'loseBeers');
+    if (c.isHuman) {
+      G.cancelAim();
+      if (G.state === 'playing') {
+        UI.toast(lost ? `You fell into the cellar! −${lost} beer${lost === 1 ? '' : 's'}` : 'You fell into the cellar!', 'bad');
+        G.shake = 0.35;
+        vibrate(200);
+      }
+    } else if (G.state === 'playing' && lost > 0) {
+      floatText(`−${lost}`, hole.x, hole.z, '#e5533d');
+    }
+  }
+
+  // ------------------------------------------------------------ camera: top-down, bar at the top of the screen
   function cameraTarget() {
     const h = G.human;
-    const fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
-    const R = C.room, m = 0.35;
-    const pos = new THREE.Vector3(
-      Math.max(R.minX + m, Math.min(R.maxX - m, h.x - fx * C.cameraDistance)),
-      C.cameraHeight,
-      Math.max(R.minZ + m, Math.min(R.maxZ - m, h.z - fz * C.cameraDistance)));
-    const look = new THREE.Vector3(h.x + fx * 2.4, 0.8, h.z + fz * 2.4);
-    return { pos, look };
+    // Stop at the edges of the map so the screen stays filled with the room
+    const cx = clamp(h.x, C.room.minX + 5, C.room.maxX - 5);
+    const lz = clamp(h.z - 0.5, 7, C.room.maxZ - 6);
+    return {
+      pos: new THREE.Vector3(cx, C.cameraHeight, lz + C.cameraBack),
+      look: new THREE.Vector3(cx, 0, lz),
+    };
   }
 
   function snapCamera() {
@@ -551,40 +645,43 @@
   function updateCamera(dt) {
     let pos, look;
     if (G.state === 'intro' || G.state === 'results') {
-      // Slow fly-around of the bar behind the menus
+      // Slow drift over the whole bar behind the menus
       const a = G.time * 0.12;
-      pos = new THREE.Vector3(Math.sin(a) * 6, 8.5, 13 + Math.cos(a) * 9.5);
-      look = new THREE.Vector3(0, 0.5, 12);
+      pos = new THREE.Vector3(Math.sin(a) * 5, 24, 34);
+      look = new THREE.Vector3(Math.sin(a) * 2, 0, 17);
     } else {
       const t = cameraTarget();
       pos = t.pos; look = t.look;
     }
-    const k = 1 - Math.exp(-(G.state === 'playing' || G.state === 'countdown' ? 9 : 2) * dt);
+    const k = 1 - Math.exp(-(G.state === 'playing' || G.state === 'countdown' ? 6 : 2) * dt);
     G.camPos.lerp(pos, k);
     G.camLook.lerp(look, k);
     const cam = G.camera;
     cam.position.copy(G.camPos);
     if (G.shake > 0) {
       G.shake = Math.max(0, G.shake - dt);
-      const s = G.shake * 0.25;
+      const s = G.shake * 0.5;
       cam.position.x += rand(-s, s);
-      cam.position.y += rand(-s, s);
+      cam.position.z += rand(-s, s);
     }
     cam.lookAt(G.camLook);
     if (G.drunkAmt > 0) cam.rotateZ(Math.sin(G.time * 1.4) * 0.06 * G.drunkAmt);
   }
 
   // ------------------------------------------------------------ main loop
+  // Up on the screen is towards the bar (-z), right is +x.
   function humanLean() {
     const l = I.getLean();
-    const fx = Math.sin(G.yaw), fz = Math.cos(G.yaw);
-    const rx = -Math.cos(G.yaw), rz = Math.sin(G.yaw);
-    return { x: fx * l.forward + rx * l.right, z: fz * l.forward + rz * l.right };
+    return { x: l.right, z: -l.forward };
   }
+
+  const STILL = { x: 0, z: 0 };
 
   function step(dt) {
     const h = G.human;
     const t = G.time;
+
+    if (G.state !== 'results') G.world.updateWalkers(dt, G.chars);
 
     if (G.state === 'countdown') {
       G.countdownT -= dt;
@@ -603,14 +700,14 @@
         G.state = 'playing';
         G.playStart = G.time;
       }
-      G.chars.forEach((c) => c.update(dt, { x: 0, z: 0 }, t));
+      G.chars.forEach((c) => c.update(dt, STILL, t));
       collide();
       return;
     }
 
     if (G.state === 'intro') {
       // Rivals play an attract-mode round behind the tutorial
-      h.update(dt, { x: 0, z: 0 }, t);
+      h.update(dt, STILL, t);
       G.bots.forEach((b) => b.c.update(dt, b.update(dt), t));
       collide();
       return;
@@ -627,12 +724,9 @@
     }
 
     G.remaining -= dt;
-    G.yaw -= I.getLook() * C.lookSpeed * dt;
-
-    h.update(dt, h.stunT > 0 ? { x: 0, z: 0 } : humanLean(), t);
+    h.update(dt, h.stunT > 0 ? STILL : humanLean(), t);
     G.bots.forEach((b) => b.c.update(dt, b.update(dt), t));
     collide();
-    updateAim();
 
     if (G.remaining <= 0) { G.remaining = 0; endMatch(); }
   }
@@ -645,6 +739,7 @@
     step(dt);
     updateFx(dt);
     G.chars.forEach((c) => c.animate(dt, G.time));
+    updateAim();
     G.world.update(dt, G.time, G.chars, G.state === 'playing' ? G.human : null);
 
     // Double-vision strength eases in and out

@@ -176,12 +176,12 @@
       root.add(this.ring);
 
       // Name tag + "about to throw" alert
-      this.tag = HMB.textSprite(o.name, { height: 0.3, size: 54, bg: 'rgba(20,13,9,0.72)', color: '#fff3d6', depthTest: false, renderOrder: 30 });
-      this.tag.position.y = 2.38;
+      this.tag = HMB.textSprite(o.name, { height: 0.5, size: 54, bg: 'rgba(20,13,9,0.72)', color: '#fff3d6', depthTest: false, renderOrder: 30 });
+      this.tag.position.y = 2.45;
       this.tag.visible = !this.isHuman;
       root.add(this.tag);
-      this.alert = HMB.textSprite('!', { height: 0.46, size: 80, pad: 26, bg: '#e5533d', color: '#fff3d6', depthTest: false, renderOrder: 31 });
-      this.alert.position.y = 2.85;
+      this.alert = HMB.textSprite('!', { height: 0.7, size: 80, pad: 26, bg: '#e5533d', color: '#fff3d6', depthTest: false, renderOrder: 31 });
+      this.alert.position.y = 3.15;
       this.alert.visible = false;
       root.add(this.alert);
 
@@ -206,8 +206,11 @@
       this.stunT = 0;
       this.knockT = 0;
       this.bumpCd = 0;
-      this.sway = { x: 0, z: 0 };
-      this.eff = { x: 0, z: 0 };
+      this.fallT = 0;
+      this.hole = null;
+      this.onSticky = false;
+      this.sway = { x: 0, z: 0 };      // total pull of the tray, roughly -1..1 per axis
+      this.slosh = { x: 0, z: 0 };     // part of the sway caused by stopping, turning and bumps
       this.walkPhase = 0;
       this.ring.visible = false;
       this.alert.visible = false;
@@ -224,7 +227,25 @@
     }
     maxSpeed() {
       const load = Math.max(0.6, 1 - this.beers * C.speedLossPerBeer);
-      return C.walkSpeed * this.skill * load * (this.boostT > 0 ? C.boostSpeedMultiplier : 1);
+      return C.walkSpeed * this.skill * load *
+        (this.boostT > 0 ? C.boostSpeedMultiplier : 1) *
+        (this.onSticky ? C.stickySpeed : 1);
+    }
+    loadFrac() { return this.beers / C.maxBeers; }
+
+    // A bump sets the beers sloshing in a random-ish direction
+    stagger(impact, nx, nz) {
+      const k = C.bumpStagger * Math.min(2, impact / 3) * (0.3 + this.loadFrac());
+      const a = Math.atan2(nz, nx) + (Math.random() - 0.5) * 2.2;
+      this.slosh.x += Math.cos(a) * k;
+      this.slosh.z += Math.sin(a) * k;
+    }
+
+    // Drop into a cellar hatch: the whole tray goes, then you climb out
+    fall(hole) {
+      this.fallT = C.holeFallSeconds;
+      this.hole = hole;
+      this.vx = this.vz = 0;
     }
 
     // lean: desired lean in world space ({x, z}, length <= 1)
@@ -238,33 +259,78 @@
       this.knockT = Math.max(0, this.knockT - dt);
       this.bumpCd = Math.max(0, this.bumpCd - dt);
 
-      // The tray sways on its own; more beers = bigger sway. You have to lean against it.
-      const drunk = this.drunkT > 0;
-      const amp = (C.wobbleBase + this.beers * C.wobblePerBeer) * (drunk ? C.drunkWobbleMultiplier : 1);
-      const p = this.ph;
-      this.sway.x = amp * (Math.sin(t * 1.9 + p[0]) + 0.6 * Math.sin(t * 3.3 + p[1]) + 0.4 * Math.sin(t * 0.7 + p[2])) / 2;
-      this.sway.z = amp * (Math.sin(t * 1.6 + p[3]) + 0.6 * Math.sin(t * 2.9 + p[4]) + 0.4 * Math.sin(t * 0.8 + p[5])) / 2;
+      if (this.fallT > 0) {
+        this.fallT -= dt;
+        this.x = this.hole.x; this.z = this.hole.z;
+        if (this.fallT <= 0) this.climbOut();
+        return;
+      }
+      this.onSticky = HMB.onSticky(this.x, this.z);
 
+      // Tray sway. It is weak while standing and strong while walking, and it adds its own
+      // drift on top of your steering, so leaning harder does not drown it out.
+      const drunk = this.drunkT > 0;
+      const speedFrac = Math.min(1, Math.hypot(this.vx, this.vz) / C.walkSpeed);
+      const amp = (C.wobbleBase + this.beers * C.wobblePerBeer) *
+        (C.wobbleStanding + C.wobbleMoving * speedFrac) *
+        (drunk ? C.drunkWobbleMultiplier : 1);
+      const p = this.ph;
+      const nx = (Math.sin(t * 1.9 + p[0]) + 0.6 * Math.sin(t * 3.3 + p[1]) + 0.4 * Math.sin(t * 0.7 + p[2])) / 2;
+      const nz = (Math.sin(t * 1.6 + p[3]) + 0.6 * Math.sin(t * 2.9 + p[4]) + 0.4 * Math.sin(t * 0.8 + p[5])) / 2;
+      const decay = Math.exp(-C.sloshDecay * dt);
+      this.slosh.x *= decay;
+      this.slosh.z *= decay;
+      let sx = amp * nx + this.slosh.x, sz = amp * nz + this.slosh.z;
+      const sm = Math.hypot(sx, sz);
+      if (sm > 1.2) { sx *= 1.2 / sm; sz *= 1.2 / sm; }
+      this.sway.x = sx; this.sway.z = sz;
+
+      // Your steering (amplified by the load and by drinking)
       let sens = 1 + this.beers * C.sensitivityPerBeer;
       if (drunk) sens *= C.drunkSensitivityMultiplier;
-      let ex = lean.x * sens + this.sway.x;
-      let ez = lean.z * sens + this.sway.z;
-      if (this.stunT > 0) { ex = 0; ez = 0; }
+      let ex = lean.x * sens, ez = lean.z * sens;
       const m = Math.hypot(ex, ez);
       if (m > 1) { ex /= m; ez /= m; }
-      this.eff.x = ex; this.eff.z = ez;
+      if (this.stunT > 0) { ex = 0; ez = 0; }
 
       const max = this.maxSpeed();
-      const acc = C.acceleration * (this.knockT > 0 ? 0.2 : 1) * (this.stunT > 0 ? 0.6 : 1);
+      const drift = C.swayDrift * (this.onSticky ? C.stickySpeed : 1);
+      const tx = ex * max + sx * drift;
+      const tz = ez * max + sz * drift;
+      const acc = C.acceleration * (this.knockT > 0 ? 0.15 : 1) * (this.stunT > 0 ? 0.6 : 1) * (this.onSticky ? 0.6 : 1);
       const k = 1 - Math.exp(-acc * dt);
-      this.vx += (ex * max - this.vx) * k;
-      this.vz += (ez * max - this.vz) * k;
+      const dvx = (tx - this.vx) * k, dvz = (tz - this.vz) * k;
+      this.vx += dvx;
+      this.vz += dvz;
+      // Stopping or turning sharply makes the beers carry on without you
+      const sk = C.sloshCoupling * this.loadFrac();
+      this.slosh.x -= dvx * sk;
+      this.slosh.z -= dvz * sk;
+
       this.x += this.vx * dt;
       this.z += this.vz * dt;
     }
 
+    climbOut() {
+      // Pop out on the side of the hatch facing the middle of the room
+      const h = this.hole;
+      const side = h.z > 18 ? -1 : 1;
+      this.x = h.x;
+      this.z = h.z + side * (h.half + this.radius + 0.25);
+      this.hole = null;
+      this.stunT = 0.4;
+    }
+
     animate(dt, t) {
       const f = this.fig;
+      if (this.fallT > 0) {
+        // Sink out of sight, then rise back up the ladder
+        const k = 1 - this.fallT / C.holeFallSeconds;
+        f.root.position.set(this.x, k < 0.25 ? -k * 8 : -2, this.z);
+        f.root.visible = k < 0.25 || k > 0.97;
+        return;
+      }
+      f.root.visible = true;
       const sp = Math.hypot(this.vx, this.vz);
       if (sp > 0.25 && this.stunT <= 0) {
         this.facing = lerpAngle(this.facing, Math.atan2(this.vx, this.vz), 1 - Math.exp(-10 * dt));
@@ -281,11 +347,13 @@
 
       // Tray tilts with the sway (in the figure's local frame)
       const cf = Math.cos(this.facing), sf = Math.sin(this.facing);
-      const sx = this.sway.x * 2.2, sz = this.sway.z * 2.2;
+      const sx = this.sway.x, sz = this.sway.z;
       const lx = sx * cf - sz * sf;
       const lz = sx * sf + sz * cf;
-      f.tray.rotation.z = -lx * 0.9;
-      f.tray.rotation.x = lz * 0.9;
+      f.tray.rotation.z = Math.max(-0.6, Math.min(0.6, -lx * 0.7));
+      f.tray.rotation.x = Math.max(-0.6, Math.min(0.6, lz * 0.7));
+      // The whole body leans with the tray too, so you can see the pull from above
+      f.lean.rotation.z += Math.max(-0.25, Math.min(0.25, -lx * 0.25));
       for (let i = 0; i < f.glasses.length; i++) f.glasses[i].visible = i < this.beers;
 
       // Shield bubble (flickers in its last second)

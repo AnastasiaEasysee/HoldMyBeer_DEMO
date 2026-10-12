@@ -7,7 +7,7 @@ HMB.CONFIG = {
   countdownSeconds: 3,
 
   // Room (metres). x: left/right, z: distance from the back wall behind the bar.
-  room: { minX: -9, maxX: 9, minZ: 0, maxZ: 26 },
+  room: { minX: -13, maxX: 13, minZ: 0, maxZ: 36 },
   barFrontZ: 1.7,            // front edge of the bar counter
   barReach: 1.4,             // how far from the counter you can still order
   drinkMinBarDistance: 4,    // you must be this far from the counter to drink
@@ -27,31 +27,46 @@ HMB.CONFIG = {
   drinkShieldSeconds: 7,
   maxGlasses: 3,             // empty glasses you can carry
 
-  // Throwing
+  // Throwing: face the rival you want to hit
   throwRange: 5,
-  throwAimConeDeg: 32,       // how close to the centre of view a target must be
+  throwAimConeDeg: 40,       // how far off your facing direction a target may be
   throwSwipePx: 36,          // swipe distance that releases the throw
   stunSeconds: 1,
   beersLostOnHit: 2,
   hitShieldSeconds: 5,
 
-  // Movement and balance
+  // Movement
   playerRadius: 0.38,
   walkSpeed: 4.4,            // m/s at full lean, empty tray
   speedLossPerBeer: 0.035,   // each beer slows you a little (min 60%)
   acceleration: 7,
-  lookSpeed: 2.4,            // rad/s at full look-stick
   tiltMaxDeg: 24,            // phone tilt for full lean
   tiltDeadzone: 0.07,
-  wobbleBase: 0.02,          // tray sway with no beers
-  wobblePerBeer: 0.032,      // extra sway per beer
   sensitivityPerBeer: 0.05,  // lean is amplified by each beer
-  bounce: 0.55,              // restitution when bumping into things
-  bumpImpulse: 1.4,
-  knockSeconds: 0.25,        // reduced control right after a bump
 
-  cameraDistance: 4.4,
-  cameraHeight: 3.3,
+  // Balance: the tray sways and drags you off course on top of your own steering.
+  wobbleBase: 0.02,          // sway with an empty tray
+  wobblePerBeer: 0.05,       // extra sway per beer
+  wobbleStanding: 0.35,      // share of the sway you feel while standing still
+  wobbleMoving: 1.3,         // extra sway at full walking speed
+  swayDrift: 2.6,            // m/s of drift at full sway
+  sloshCoupling: 0.12,       // stopping or turning hard makes the beers slosh
+  sloshDecay: 1.5,
+
+  // Bumping into things
+  bounce: 0.9,               // restitution
+  bumpImpulse: 3.2,          // extra push away from what you hit
+  knockSeconds: 0.45,        // reduced control right after a bump
+  bumpStagger: 0.18,         // how much a bump sets your tray swaying
+
+  // Hazards
+  stickySpeed: 0.4,          // speed multiplier on sticky spills
+  holeFallSeconds: 1.4,      // time spent climbing out of a cellar hatch
+  walkerSpeed: 1.3,          // customers walking around
+
+  // Top-down camera, bar at the top of the screen
+  cameraHeight: 13,
+  cameraBack: 3.5,
 
   humanColor: 0x6fcf7b,
 
@@ -59,13 +74,13 @@ HMB.CONFIG = {
   // aggression/drinkChance = how often they drink and throw, farBias = love of high-value tables.
   bots: [
     { name: 'PintPaul', shirt: 0xe5533d, pants: 0x2d2a3a, hair: 0x2a1a0e,
-      tripMin: 6, tripMax: 10, lean: 0.78, skill: 0.85, balance: 0.55,
+      tripMin: 6, tripMax: 10, lean: 0.8, skill: 0.88, balance: 0.45,
       aggression: 0.35, drinkChance: 0.18, farBias: 0.05, random: 0.25, react: [0.8, 1.2] },
     { name: 'AleAlice', shirt: 0x4f8de0, pants: 0x3b3326, hair: 0xd9a441,
-      tripMin: 3, tripMax: 6, lean: 0.85, skill: 0.9, balance: 0.7,
+      tripMin: 3, tripMax: 6, lean: 0.88, skill: 0.92, balance: 0.6,
       aggression: 0.5, drinkChance: 0.25, farBias: 0.15, random: 0.2, react: [0.7, 1.0] },
     { name: 'StoutSam', shirt: 0xa46be0, pants: 0x1f2a24, hair: 0x101010,
-      tripMin: 4, tripMax: 8, lean: 0.8, skill: 0.87, balance: 0.5,
+      tripMin: 4, tripMax: 8, lean: 0.82, skill: 0.9, balance: 0.4,
       aggression: 0.9, drinkChance: 0.45, farBias: 0.0, random: 0.3, react: [0.6, 0.9] },
   ],
 };

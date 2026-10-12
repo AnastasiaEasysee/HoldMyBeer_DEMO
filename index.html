@@ -39,7 +39,6 @@
       <div id="effects"></div>
       <div id="toasts"></div>
 
-      <div id="stick-look" class="stick"><div class="knob"></div><span class="stick-label">Look</span></div>
       <div id="stick-move" class="stick"><div class="knob"></div><span class="stick-label">Move</span></div>
 
       <div id="balance" title="Double-tap to recalibrate tilt"><div class="cross"></div><div id="bubble"></div></div>
@@ -54,7 +53,7 @@
         <span class="sub">swipe up</span>
         <span id="glass-count" class="badge">1</span>
       </button>
-      <div id="aim-hint" hidden>Face a rival within 5&nbsp;m, then swipe up. Let go to cancel.</div>
+      <div id="aim-hint" hidden>Walk towards a rival so they're in the fan, then swipe up. Let go to cancel.</div>
 
       <div id="hit-flash"></div>
     </div>
@@ -79,9 +78,10 @@
         <ul class="howto">
           <li><b>Load up at the bar.</b> Stand at the counter and tap <em>Get Beer</em>. Your tray holds 10.</li>
           <li><b>Serve a table.</b> Walk up and tap <em>Serve</em>. The number above a table is points per beer. Far tables pay the most.</li>
-          <li><b>Keep your balance.</b> Tilt your phone to lean and walk. A full tray wobbles more, so steer against it.</li>
+          <li><b>Keep your balance.</b> Tilt your phone to lean and walk. The tray drags you off course, more with every beer and more the faster you go. Stopping hard makes the beers slosh.</li>
+          <li><b>Watch your step.</b> Sticky spills slow you down, open cellar hatches swallow your whole tray, and customers walk around the room. Bumping into anything bounces you off hard.</li>
           <li><b>Drink one.</b> Away from the bar, tap <em>Drink</em> for a speed boost, a 7&nbsp;s shield and an empty glass. You also see double for 5&nbsp;s.</li>
-          <li><b>Throw the glass.</b> Hold <em>Throw</em>, turn to face a rival within 5&nbsp;m and swipe up. They drop 2 beers.</li>
+          <li><b>Throw the glass.</b> Walk towards a rival so they're inside the fan in front of you (within 5&nbsp;m), hold <em>Throw</em> and swipe up. They drop 2 beers.</li>
         </ul>
 
         <div class="field">
@@ -94,7 +94,7 @@
         </div>
 
         <p class="rivals">Tonight's rivals: <span id="rival-names"></span></p>
-        <p class="keys">On a computer: <kbd>W A S D</kbd> walk, <kbd>&larr;</kbd><kbd>&rarr;</kbd> look, <kbd>Space</kbd> action, hold <kbd>F</kbd> + <kbd>Space</kbd> to throw.</p>
+        <p class="keys">On a computer: <kbd>W A S D</kbd> or arrows walk, <kbd>Space</kbd> action, hold <kbd>F</kbd> + <kbd>Space</kbd> to throw.</p>
 
         <button id="btn-start" class="cta" type="button">I understand</button>
       </div>

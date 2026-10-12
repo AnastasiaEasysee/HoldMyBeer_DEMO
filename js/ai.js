@@ -49,6 +49,7 @@
       this.cols = Math.round((R.maxX - R.minX) / this.cell);
       this.rows = Math.round((R.maxZ - R.minZ) / this.cell);
       this.blocked = new Uint8Array(this.cols * this.rows);
+      this.cost = new Float32Array(this.cols * this.rows).fill(1);
       const pad = C.playerRadius + 0.12;
       for (let cz = 0; cz < this.rows; cz++) {
         for (let cx = 0; cx < this.cols; cx++) {
@@ -59,7 +60,11 @@
               if (Math.hypot(p.x - o.x, p.z - o.z) < o.r + pad) { b = true; break; }
             }
           }
+          // Keep well clear of open cellar hatches
+          if (!b && HMB.MAP.holes.some((h) => Math.abs(p.x - h.x) < h.half + 0.6 && Math.abs(p.z - h.z) < h.half + 0.6)) b = true;
           this.blocked[cz * this.cols + cx] = b ? 1 : 0;
+          // Sticky spills are walkable but slow, so paths prefer to go around
+          if (HMB.MAP.sticky.some((s) => Math.hypot(p.x - s.x, p.z - s.z) < s.r + 0.2)) this.cost[cz * this.cols + cx] = 3.5;
         }
       }
     }
@@ -74,6 +79,10 @@
       return cx >= 0 && cz >= 0 && cx < this.cols && cz < this.rows && !this.blocked[cz * this.cols + cx];
     }
     freeAt(x, z) { const c = this.toCell(x, z); return this.free(c.cx, c.cz); }
+    clearAt(x, z) {   // free and not sticky (used to smooth paths without cutting across spills)
+      const c = this.toCell(x, z);
+      return this.free(c.cx, c.cz) && this.cost[c.cz * this.cols + c.cx] <= 1;
+    }
     nearestFree(cx, cz) {
       if (this.free(cx, cz)) return { cx, cz };
       for (let r = 1; r < 8; r++) {
@@ -94,9 +103,12 @@
     lineFree(ax, az, bx, bz) {
       const d = Math.hypot(bx - ax, bz - az);
       const steps = Math.ceil(d / (this.cell * 0.4));
+      const startSticky = !this.clearAt(ax, az);
       for (let i = 1; i <= steps; i++) {
         const t = i / steps;
-        if (!this.freeAt(ax + (bx - ax) * t, az + (bz - az) * t)) return false;
+        const x = ax + (bx - ax) * t, z = az + (bz - az) * t;
+        if (!this.freeAt(x, z)) return false;
+        if (!startSticky && !this.clearAt(x, z)) return false;
       }
       return true;
     }
@@ -130,7 +142,7 @@
             if (dx && dz && (!this.free(cx + dx, cz) || !this.free(cx, cz + dz))) continue;
             const ni = nz * cols + nx;
             if (closed[ni]) continue;
-            const ng = g[cur] + (dx && dz ? Math.SQRT2 : 1);
+            const ng = g[cur] + (dx && dz ? Math.SQRT2 : 1) * this.cost[ni];
             if (ng < g[ni]) {
               g[ni] = ng;
               from[ni] = cur;
@@ -238,6 +250,16 @@
 
     update(dt) {
       const c = this.c, g = this.g;
+      if (c.fallT > 0) {
+        // Fell into the cellar: re-plan from scratch once out
+        this.aim = null;
+        c.alert.visible = false;
+        this.path = null;
+        this.goal = null;
+        this.table = null;
+        this.state = 'toBar';
+        return ZERO;
+      }
       if (c.stunT > 0) {
         this.aim = null;
         c.alert.visible = false;
@@ -300,11 +322,15 @@
       return this.steer(dt);
     }
 
-    // Stand still while correcting the tray sway
-    hold() {
-      const c = this.c, b = this.p.balance;
-      return { x: -c.sway.x * b, z: -c.sway.z * b };
+    // Steering needed to cancel the tray's drift (scaled by how good this bot is at balancing)
+    counterSway() {
+      const c = this.c;
+      const k = (C.swayDrift / Math.max(0.5, c.maxSpeed())) * this.p.balance;
+      return { x: -c.sway.x * k, z: -c.sway.z * k };
     }
+
+    // Stand still while correcting the tray sway
+    hold() { return this.counterSway(); }
 
     steer(dt) {
       const c = this.c, g = this.g;
@@ -321,19 +347,20 @@
       if (this.path.length === 1 && d < 1.6) mag *= Math.max(0.3, d / 1.6);
       let lx = (dx / d) * mag, lz = (dz / d) * mag;
 
-      // Keep a little distance from other players
-      for (const o of g.chars) {
+      // Keep a little distance from other players and walking customers
+      for (const o of g.movers()) {
         if (o === c) continue;
         const ox = c.x - o.x, oz = c.z - o.z, od = Math.hypot(ox, oz);
-        if (od < 1.3 && od > 0.01) {
-          const push = (1.3 - od) * 0.7;
+        if (od < 1.4 && od > 0.01) {
+          const push = (1.4 - od) * 0.8;
           lx += (ox / od) * push;
           lz += (oz / od) * push;
         }
       }
       // Fight the tray sway
-      lx -= c.sway.x * this.p.balance;
-      lz -= c.sway.z * this.p.balance;
+      const cs = this.counterSway();
+      lx += cs.x;
+      lz += cs.z;
 
       // Unstick: if barely moving for a second, sidestep and re-plan
       const sp = Math.hypot(c.vx, c.vz);
@@ -361,7 +388,7 @@
         const t = this.aim.target;
         this.aim.t -= dt;
         const d = Math.hypot(t.x - c.x, t.z - c.z);
-        if (d > C.throwRange || t.stunT > 0 || c.glasses <= 0) {
+        if (d > C.throwRange || t.stunT > 0 || t.fallT > 0 || c.glasses <= 0) {
           this.aim = null;
           c.alert.visible = false;
         } else if (this.aim.t <= 0) {
@@ -378,7 +405,7 @@
       const leader = g.chars.reduce((a, b) => (b.score > a.score ? b : a), g.chars[0]);
       let best = null, bw = 0;
       for (const o of g.chars) {
-        if (o === c || o.shieldT > 0 || o.stunT > 0 || o.beers < 1) continue;
+        if (o === c || o.shieldT > 0 || o.stunT > 0 || o.fallT > 0 || o.beers < 1) continue;
         if (Math.hypot(o.x - c.x, o.z - c.z) > C.throwRange * 0.9) continue;
         const w = o.beers + (o.isHuman ? 2 : 0) + (o === leader ? 2 : 0) + Math.random() * 2;
         if (w > bw) { bw = w; best = o; }
