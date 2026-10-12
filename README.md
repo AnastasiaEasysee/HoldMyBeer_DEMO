@@ -36,6 +36,11 @@ Phones only allow tilt controls on **HTTPS** pages. GitHub Pages gives you a fre
 
 After you change something, upload or push again; Pages updates within a minute or two.
 
+**Seeing an old version?** Browsers may keep GitHub Pages files for up to 10 minutes. The version number is at the
+bottom of the start screen. If it's old, reload the page (on a phone: close the tab and open the link again).
+When you change the code, bump the `?v=...` numbers in `index.html` and the version text under the
+**I understand** button, so phones fetch the new files instead of mixing old and new ones.
+
 On iPhone, the game asks for motion permission when you tap **I understand**. Allow it, or tilt won't work.
 On Android, the game goes fullscreen and keeps the screen awake while you play.
 
