@@ -105,7 +105,7 @@ HMB.SETTINGS = [
   ] },
   { group: 'Getting beers', items: [
     ['maxBeers', 'Max beers on the tray', 1, 30, 1],
-    ['getBeerCooldown', 'Get Beer cooldown (s)', 0, 5, 0.1],
+    ['getBeerCooldown', 'Seconds per beer at the bar', 0.1, 5, 0.1],
   ] },
   { group: 'Drinking', items: [
     ['drinkCooldown', 'Drink cooldown (s)', 0, 60, 1],

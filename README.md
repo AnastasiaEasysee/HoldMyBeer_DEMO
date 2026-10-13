@@ -60,7 +60,7 @@ screen (or tilting the phone away from you) walks towards the bar.
 | | Phone | Keyboard (testing) |
 |---|---|---|
 | Walk / balance | Tilt the phone, or the joystick (bottom-right) | `W A S D` or arrow keys |
-| Action (Get Beer / Serve / Drink) | Big coaster button | `Space` |
+| Action (Serve / Drink) | Big coaster button | `Space` |
 | Throw a glass | Walk towards a rival so they're in the fan in front of you (it turns red and they get a ring), then tap **Throw** | `F` |
 
 ## What's in the demo
@@ -72,7 +72,7 @@ screen (or tilting the phone away from you) walks towards the bar.
 | User controls | Gyro lean with joystick fallback; lean further to walk faster; full trays walk slower |
 | Obstacles | Stools and customers at fixed spots, customers walking set routes, other players. Bumping into anything bounces you off hard |
 | Hazards | Sticky spills (slow you to 40%) and open cellar hatches (fall in, lose your whole tray, climb out after 1.4 s). If a player falls in within 2.5 s of being bumped by another player, the bumper scores 2 points per beer lost |
-| Getting beers | Hold **Get Beer** near the bar: one beer per second (the cooldown) while held, max 10 (up to 30 via the tweak panel; extra beers stack in layers on the tray). More beers = more tray sway and touchier balance |
+| Getting beers | Stand near the bar and your tray refills by itself: one beer per second, max 10 (up to 30 via the tweak panel; extra beers stack in layers on the tray). More beers = more tray sway and touchier balance |
 | Drinking | **Drink** away from the bar, 10 s cooldown. 5 s double vision + touchier balance; 7 s speed boost; 7 s shield (bubble); +1 empty glass |
 | Throwing | Your facing direction aims: the fan shows reach (5 m) and angle; the rival inside it is highlighted. Tap **Throw** to throw. Hit = thrower scores 2 points per beer the target was carrying, then the target is stunned 1 s, drops 2 beers and gets 5 s throw immunity |
 | Views (phone) | Top-down camera following you, name tags, tutorial → "I understand" → countdown, HUD (beers top-left, score top-middle, filling timer top-right), results with rank and score |
